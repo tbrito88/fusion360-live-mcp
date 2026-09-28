@@ -51,12 +51,18 @@ You should see `[MCP] Server listening on localhost:9876` in the TEXT COMMANDS w
 
 ### 2. Connect your MCP client
 
-The MCP server is published on [PyPI](https://pypi.org/project/fusion360-mcp-server/) — no need to clone this repo.
+This fork is **not** published on PyPI — the `fusion360-mcp-server` package there belongs to the upstream project and does not include the fixes in [CORRECOES.md](CORRECOES.md). Clone this repo and run it from source with `uv`:
+
+```bash
+git clone https://github.com/tbrito88/fusion360-mcp-server.git
+cd fusion360-mcp-server
+uv sync
+```
 
 #### Claude Code
 
 ```bash
-claude mcp add fusion360 -- uvx fusion360-mcp-server --mode socket
+claude mcp add fusion360 -- uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket
 ```
 
 #### Other MCP clients
@@ -64,7 +70,7 @@ claude mcp add fusion360 -- uvx fusion360-mcp-server --mode socket
 The server runs over **stdio**, so any MCP-compatible client can launch it. The command is:
 
 ```
-uvx fusion360-mcp-server --mode socket
+uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket
 ```
 
 <details>
@@ -74,10 +80,10 @@ uvx fusion360-mcp-server --mode socket
 {
   "mcpServers": {
     "fusion360": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "fusion360-mcp-server",
-        "--mode", "socket"
+        "run", "--directory", "/path/to/fusion360-mcp-server",
+        "-m", "fusion360_mcp", "--mode", "socket"
       ]
     }
   }
@@ -125,9 +131,9 @@ Call the `ping` tool from your client. If it returns `{"ok": true, "status": "po
 2. Stop the add-in in Fusion (Shift+S → Add-Ins → Fusion360MCP → Stop)
 3. Delete the add-in folder from Fusion's AddIns directory
 
-## Available Tools (93)
+## Available Tools (92)
 
-> Tools marked **(2026+)** require a recent Fusion build — they use APIs introduced in the January–July 2026 releases and are live-tested on Fusion 2705 (arm64).
+> Tools marked **(2026+)** require a recent Fusion build — they use APIs introduced in the January–July 2026 releases.
 
 ### Scene & Query
 | Tool | Description |
@@ -191,6 +197,7 @@ Call the `ping` tool from your client. If it returns `{"ok": true, "status": "po
 | `move_body` | Translate a body by (x, y, z) |
 | `rename_body` | Rename a body (searches root and all components) |
 | `boolean_operation` | Join/cut/intersect two bodies |
+| `delete_body` | Delete one named body (searches root and all components) — use instead of `undo` to remove a body |
 | `delete_all` | Clear the design |
 | `undo` | Undo last operation (with design-type safety guard) |
 
@@ -207,18 +214,16 @@ Call the `ping` tool from your client. If it returns `{"ok": true, "status": "po
 | Tool | Description |
 |------|-------------|
 | `patch_surface` | Create a patch surface from boundary edges |
-| `stitch_surfaces` | Stitch surface bodies into one |
-| `thicken_surface` | Thicken a surface into a solid |
-| `ruled_surface` | Ruled surface from an edge |
-| `trim_surface` | Trim a surface with another body |
+| `stitch_surfaces` | Stitch surface bodies into a single body |
+| `thicken_surface` | Thicken a surface body into a solid |
 
 ### Sheet Metal
 | Tool | Description |
 |------|-------------|
-| `create_flange` | Create a flange on an edge |
-| `create_bend` | Add a bend |
-| `flat_pattern` | Create flat pattern |
-| `unfold` | Unfold specific bends |
+| `convert_to_sheet_metal` | Convert a solid body of uniform thickness into sheet metal (thickness taken from the geometry) |
+| `fold_sheet_metal` | Bend a sheet metal body along a line of the last sketch (draw the line with `draw_line` first) |
+| `flat_pattern` | Create the flat pattern of a sheet metal body (run `convert_to_sheet_metal` first) |
+| `export_flat_pattern_dxf` | Export the flat pattern as DXF for laser/plasma/waterjet cutting (run `flat_pattern` first) |
 
 ### Construction Geometry
 | Tool | Description |
@@ -303,7 +308,7 @@ Call the `ping` tool from your client. If it returns `{"ok": true, "status": "po
 
 ```bash
 uv sync --dev       # install deps
-uv run pytest -v    # run tests (363 tests)
+uv run pytest -v    # run tests (385 tests)
 uv run ruff check   # lint
 ```
 
@@ -314,7 +319,7 @@ uv run ruff check   # lint
 - Timeouts: the add-in's main-thread bridge times out after 30s and *cancels* the queued command; the client waits up to 45s so it receives that structured `TIMEOUT` error. **Mutation commands are never auto-retried** — after a timeout, call `get_scene_info` to check whether anything was applied before retrying.
 - Add-in logs to `~/fusion360mcp.log`.
 - The `undo` tool includes a design-type safety guard — it checks before/after and auto-redoes if the undo would switch from parametric to direct mode.
-- Tested on Fusion 2705.1.15 (macOS arm64). Tools marked **(2026+)** need a build from 2026 or later.
+- This fork is tested on Fusion 2704.1.53 (Windows x86_64) — see [CORRECOES.md](CORRECOES.md) for the full validation log. Tools marked **(2026+)** need a build from 2026 or later.
 
 ## Acknowledgements
 

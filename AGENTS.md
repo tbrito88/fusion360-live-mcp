@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is an MCP server (93 tools) that connects AI coding agents to Autodesk Fusion 360 for CAD automation. It consists of two pieces:
+This is an MCP server (92 tools) that connects AI coding agents to Autodesk Fusion 360 for CAD automation. It consists of two pieces:
 
 1. **MCP Server** (this repo) — speaks MCP protocol over stdio, forwards commands to Fusion via TCP
 2. **Fusion 360 Add-in** — runs inside Fusion, executes commands on the main thread via CustomEvent bridge
@@ -16,7 +16,7 @@ Claude Code ──stdio──> MCP Server ──TCP :9876──> Fusion Add-in �
 
 The add-in uses a CustomEvent + work queue pattern to safely dispatch all Fusion API calls to the main thread. Socket threads submit work items and block on a per-item `threading.Event` until the main thread completes execution.
 
-## Available tools (93)
+## Available tools (92)
 
 ### Scene & Query
 | Tool | Description |
