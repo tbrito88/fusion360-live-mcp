@@ -762,6 +762,8 @@ class CommandHandler:
         return {"sketch": sketch.name, "sweep_angle": sweep_angle}
 
     def draw_spline(self, spline_type: str, points: list, degree: int = 3):
+        if spline_type == "control_points" and int(degree) not in (3, 5):
+            raise RuntimeError(f"degree must be 3 or 5, got {degree}")
         sketch = self._last_sketch()
         pts = adsk.core.ObjectCollection.create()
         for p in points:

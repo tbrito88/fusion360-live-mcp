@@ -199,7 +199,12 @@ TOOLS: list[dict] = [
             "type": "object",
             "required": ["angle"],
             "properties": {
-                "angle": {"type": "number", "minimum": 0.1, "maximum": 360},
+                "angle": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 360,
+                    "description": "Revolve angle in degrees",
+                },
                 "profile_index": {"type": "integer", "default": 0},
                 "axis_origin_x": {"type": "number", "default": 0},
                 "axis_origin_y": {"type": "number", "default": 0},
@@ -1064,7 +1069,8 @@ TOOLS: list[dict] = [
                 },
                 "result_option": {
                     "type": "integer",
-                    "enum": [1, 2, 3],
+                    "minimum": 1,
+                    "maximum": 3,
                     "default": 1,
                     "description": (
                         "1 = most thorough (slowest), 2 = fastest, "
@@ -1305,7 +1311,8 @@ TOOLS: list[dict] = [
                 },
                 "degree": {
                     "type": "integer",
-                    "enum": [3, 5],
+                    "minimum": 3,
+                    "maximum": 5,
                     "default": 3,
                     "description": ("Spline degree (only for control_points, 3 or 5)"),
                 },
@@ -1683,21 +1690,21 @@ TOOLS: list[dict] = [
             "required": ["length", "width", "height"],
             "properties": {
                 "length": {
-                    "oneOf": [
+                    "anyOf": [
                         {"type": "number", "minimum": 0.001},
                         {"type": "string"},
                     ],
                     "description": "Along sketch X: number (cm) or expression",
                 },
                 "width": {
-                    "oneOf": [
+                    "anyOf": [
                         {"type": "number", "minimum": 0.001},
                         {"type": "string"},
                     ],
                     "description": "Along sketch Y: number (cm) or expression",
                 },
                 "height": {
-                    "oneOf": [
+                    "anyOf": [
                         {"type": "number", "minimum": 0.001},
                         {"type": "string"},
                     ],
@@ -2892,8 +2899,47 @@ _IDEMPOTENT = {
     "render_view",
 }
 
+# Models other than Claude don't read AGENTS.md, and some clients drop the
+# server instructions, so the unit convention travels with each tool.
+_UNITS_NOTE = (
+    " Unless a parameter says otherwise, lengths and coordinates are in cm"
+    " (not mm) and angles in degrees."
+)
+
+
+_OUTPUT_UNITS = {
+    "get_physical_properties": (
+        " Returns mass in kg, volume in cm³, area in cm², density in kg/cm³"
+        " and center of mass in cm."
+    ),
+    "measure_distance": " Returns the distance and closest points in cm.",
+    "get_object_info": " Bounding box in cm.",
+    "check_interference": " Interference volumes in cm³.",
+}
+
+
+def _has_number(schema: dict) -> bool:
+    if schema.get("type") == "number":
+        return True
+    subs = list(schema.get("properties", {}).values()) + schema.get("anyOf", [])
+    if isinstance(schema.get("items"), dict):
+        subs.append(schema["items"])
+    return any(_has_number(sub) for sub in subs)
+
+
+def _append(desc: str, extra: str) -> str:
+    desc = desc.rstrip()
+    if desc and desc[-1] not in ".!?)":
+        desc += "."
+    return desc + extra
+
+
 for _t in TOOLS:
     _name = _t["name"]
+    if _name in _OUTPUT_UNITS:
+        _t["description"] = _append(_t["description"], _OUTPUT_UNITS[_name])
+    if _has_number(_t["inputSchema"]):
+        _t["description"] = _append(_t["description"], _UNITS_NOTE)
     _t["annotations"] = {
         "readOnlyHint": _name in _READ_ONLY,
         "destructiveHint": _name in _DESTRUCTIVE,

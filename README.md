@@ -8,7 +8,7 @@
 
 MCP server that connects AI coding agents to Autodesk Fusion 360 for CAD automation.
 
-Tested with [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Works with any MCP-compatible client — OpenCode, Codex, Cursor, or anything that speaks the [Model Context Protocol](https://modelcontextprotocol.io).
+Live-tested with [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Works with any client that speaks the [Model Context Protocol](https://modelcontextprotocol.io) over stdio — Hermes Agent, OpenClaw, Codex, Gemini CLI, Cursor and others; see [Other agents and LLMs](#other-agents-and-llms).
 
 ## How it works
 
@@ -65,31 +65,113 @@ uv sync
 claude mcp add fusion360-live -- uv run --directory /path/to/fusion360-live-mcp -m fusion360_live_mcp --mode socket
 ```
 
-#### Other MCP clients
+#### Other agents and LLMs
 
-The server runs over **stdio**, so any MCP-compatible client can launch it. The command is:
+The server speaks standard MCP over **stdio**, so it works with any client that supports stdio servers and tool calling — which model runs behind the client doesn't matter. The launch command is always:
 
 ```
 uv run --directory /path/to/fusion360-live-mcp -m fusion360_live_mcp --mode socket
 ```
 
+To avoid needing `uv` at runtime, point the client at the virtual environment's Python instead: `/path/to/fusion360-live-mcp/.venv/Scripts/python.exe` on Windows (`.venv/bin/python` elsewhere) with args `-m fusion360_live_mcp --mode socket`.
+
+Three settings matter in every client:
+
+- **Timeouts.** Fusion operations can be slow, and on Windows the first call may start Fusion and wait up to 240 s for the add-in. Allow at least **300 s per tool call** and **60 s for startup**.
+- **Environment.** Some clients (Hermes, Codex) don't pass your whole shell environment to the server. If you use `FUSION360_LIVE_MCP_HOST`, `_PORT` or `_AUTOLAUNCH`, declare them in the client's `env` block.
+- **Tool count.** The 92 tool definitions take about 15k tokens. OpenAI-compatible APIs reject requests with more than 128 tools (the agent's own tools count too), and small local models get less accurate with long tool lists. When that matters, use the client's tool filter with this core set (~40 tools, ~6k tokens):
+
+  ```
+  ping, "get_*", list_components, create_sketch, "draw_*", create_polygon, extrude, revolve, fillet, chamfer, shell, create_hole, mirror, rectangular_pattern, circular_pattern, boolean_operation, move_body, rename_body, delete_body, create_box, create_cylinder, create_sphere, "measure_*", check_interference, "*_parameter", export, render_view, undo
+  ```
+
+Every tool description states its units (cm and degrees), and the server sends the same rules as MCP `instructions`, so models that never saw this README still get sizes right.
+
 <details>
-<summary><strong>Cursor</strong> (~/.cursor/mcp.json)</summary>
+<summary><strong>Hermes Agent</strong> (<code>~/.hermes/config.yaml</code>; Windows installs: <code>%LOCALAPPDATA%\hermes\config.yaml</code>)</summary>
+
+```yaml
+mcp_servers:
+  fusion360-live:
+    command: "uv"
+    args: ["run", "--directory", "/path/to/fusion360-live-mcp", "-m", "fusion360_live_mcp", "--mode", "socket"]
+    timeout: 300
+    connect_timeout: 60
+    # tools:
+    #   include: [ping, "get_*", extrude, ...]   # the core set above
+```
+
+Hermes registers the tools as `mcp_fusion360_live_<tool>`.
+</details>
+
+<details>
+<summary><strong>OpenClaw</strong> (<code>openclaw.json</code>)</summary>
+
+```json5
+{
+  mcp: {
+    servers: {
+      "fusion360-live": {
+        transport: "stdio",
+        command: "uv",
+        args: ["run", "--directory", "/path/to/fusion360-live-mcp", "-m", "fusion360_live_mcp", "--mode", "socket"],
+        connectionTimeoutMs: 60000,
+        requestTimeoutMs: 300000,
+        // toolFilter: { include: ["ping", "get_*", "extrude"] },  // the core set above
+      },
+    },
+  },
+}
+```
+</details>
+
+<details>
+<summary><strong>OpenAI Codex</strong> (<code>~/.codex/config.toml</code>)</summary>
+
+```toml
+[mcp_servers.fusion360-live]
+command = "uv"
+args = ["run", "--directory", "/path/to/fusion360-live-mcp", "-m", "fusion360_live_mcp", "--mode", "socket"]
+startup_timeout_sec = 60   # default 10 is too short for the first uv run
+tool_timeout_sec = 300     # default 60 is too short for auto-launch
+# enabled_tools = ["ping", "get_scene_info", "extrude"]
+```
+</details>
+
+<details>
+<summary><strong>Gemini CLI</strong> (<code>~/.gemini/settings.json</code>)</summary>
 
 ```json
 {
   "mcpServers": {
     "fusion360-live": {
       "command": "uv",
-      "args": [
-        "run", "--directory", "/path/to/fusion360-live-mcp",
-        "-m", "fusion360_live_mcp", "--mode", "socket"
-      ]
+      "args": ["run", "--directory", "/path/to/fusion360-live-mcp", "-m", "fusion360_live_mcp", "--mode", "socket"],
+      "timeout": 600000
+    }
+  }
+}
+```
+
+Add `"includeTools": [...]` to limit the tool list.
+</details>
+
+<details>
+<summary><strong>Cursor</strong> (<code>~/.cursor/mcp.json</code>) and other <code>mcpServers</code>-style clients</summary>
+
+```json
+{
+  "mcpServers": {
+    "fusion360-live": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/fusion360-live-mcp", "-m", "fusion360_live_mcp", "--mode", "socket"]
     }
   }
 }
 ```
 </details>
+
+**What has been verified:** the MCP protocol with a generic client (the official Python SDK) running under the same filtered environment Hermes uses, and every tool schema against OpenAI's and Gemini's rules (`tests/test_client_compat.py`). Live modelling inside Fusion has so far been done with Claude only.
 
 ### Cross-machine setup (LAN)
 
@@ -308,7 +390,7 @@ Call the `ping` tool from your client. If it returns `{"ok": true, "status": "po
 
 ```bash
 uv sync --dev       # install deps
-uv run pytest -v    # run tests (388 tests)
+uv run pytest -v    # run tests (490 tests)
 uv run ruff check   # lint
 ```
 

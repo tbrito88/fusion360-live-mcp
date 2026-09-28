@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+from urllib.parse import unquote
 
 import anyio
 import click
@@ -29,6 +30,16 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 log = logging.getLogger("fusion360_live_mcp.server")
+
+_INSTRUCTIONS = (
+    "Controls Autodesk Fusion 360 through its add-in. Units: lengths and "
+    "coordinates in cm (not mm), angles in degrees. Do one modelling operation "
+    "per tool call and check its result (the deltas, or get_scene_info) before "
+    "the next. Name bodies and sketches explicitly and refer to them by name. "
+    "After a TIMEOUT, call get_scene_info before retrying: mutations are never "
+    "retried automatically. Prefer the dedicated tools over execute_code, which "
+    "runs arbitrary Python inside Fusion."
+)
 
 
 def _send(
@@ -184,9 +195,21 @@ def _format_result(
     help="TCP port the Fusion 360 add-in listens on (env: FUSION360_LIVE_MCP_PORT)",
 )
 def main(mode: str, host: str, port: int) -> int:
-    """Fusion360 Live MCP — connects Claude to Fusion 360."""
+    """Fusion360 Live MCP — connects AI agents to Fusion 360."""
+    app = build_app(mode, host, port)
 
-    app = Server("fusion360-live-mcp")
+    from mcp.server.stdio import stdio_server
+
+    async def arun():
+        async with stdio_server() as streams:
+            await app.run(streams[0], streams[1], app.create_initialization_options())
+
+    anyio.run(arun)
+    return 0
+
+
+def build_app(mode: str, host: str, port: int) -> Server:
+    app = Server("fusion360-live-mcp", instructions=_INSTRUCTIONS)
 
     # ── tools ────────────────────────────────────────────────────────
 
@@ -252,7 +275,9 @@ def main(mode: str, host: str, port: int) -> int:
         ]
 
     @app.read_resource()
-    async def read_resource(uri: str) -> str:
+    async def read_resource(uri) -> str:
+        # The SDK hands over a pydantic AnyUrl, not a str; names are URL-encoded.
+        uri = unquote(str(uri))
         if uri == "fusion360://status":
             try:
                 result = _send(mode, "ping", host=host, port=port)
@@ -475,13 +500,4 @@ def main(mode: str, host: str, port: int) -> int:
             ],
         )
 
-    # ── run ──────────────────────────────────────────────────────────
-
-    from mcp.server.stdio import stdio_server
-
-    async def arun():
-        async with stdio_server() as streams:
-            await app.run(streams[0], streams[1], app.create_initialization_options())
-
-    anyio.run(arun)
-    return 0
+    return app
