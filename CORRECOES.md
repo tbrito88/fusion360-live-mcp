@@ -6,7 +6,7 @@ commit `ba8560f` (2026-09-16), adaptado ao **Autodesk Fusion 2704.1.53**.
 | | |
 |---|---|
 | Ferramentas expostas | **92** (eram 93; +`delete_body` em 2026-09-22) |
-| Testes | **385 de 385 passam** — todos os bugs desta seção foram achados por teste real, nenhum por auditoria estática |
+| Testes | **388 de 388 passam** — todos os bugs desta seção foram achados por teste real, nenhum por auditoria estática |
 | Executado dentro do Fusion | sim — várias rodadas de teste ao vivo (CAM, modelagem) |
 
 ### Renomeação (2026-09-27)
@@ -277,10 +277,10 @@ usar `create_flange`). O `model-threaded-bolt` voltou.
 
 ## 5. Limites
 
-- **Nada foi executado no Fusion.** A primeira chamada de cada ferramenta nova é,
-  na prática, o teste real. Em especial `fold_sheet_metal`, que não tem exemplo
-  oficial — foi escrita só a partir das assinaturas e docstrings do runtime.
-- Verificação de nome e aridade, não de tipo nem de comportamento.
+- Estado **antes** dos testes ao vivo: a verificação das seções 1 a 4 foi de
+  nome e aridade, não de tipo nem de comportamento. `fold_sheet_metal`, sem
+  exemplo oficial, foi escrita só a partir das assinaturas e docstrings do
+  runtime. As seções 6 a 12 registram a execução real dentro do Fusion.
 
 ## 6. Teste real dirigido — flange de acoplamento (2026-09-20)
 

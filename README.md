@@ -119,7 +119,7 @@ uv run --directory /path/to/fusion360-live-mcp -m fusion360_live_mcp --mode sock
 FUSION360_LIVE_MCP_HOST=192.168.1.42 uv run --directory /path/to/fusion360-live-mcp -m fusion360_live_mcp --mode socket
 ```
 
-**Security note:** the TCP socket has no authentication. Only expose it on a trusted LAN — never bind to `0.0.0.0` on a host reachable from the public internet.
+**Security note:** the TCP socket has no authentication. Only expose it on a trusted LAN — never bind to `0.0.0.0` on a host reachable from the public internet. See [Security](#security).
 
 ### 3. Verify
 
@@ -308,7 +308,7 @@ Call the `ping` tool from your client. If it returns `{"ok": true, "status": "po
 
 ```bash
 uv sync --dev       # install deps
-uv run pytest -v    # run tests (385 tests)
+uv run pytest -v    # run tests (388 tests)
 uv run ruff check   # lint
 ```
 
@@ -318,8 +318,17 @@ uv run ruff check   # lint
 - One operation per tool call. Batching multiple operations crashes the add-in.
 - Timeouts: the add-in's main-thread bridge times out after 30s and *cancels* the queued command; the client waits up to 45s so it receives that structured `TIMEOUT` error. **Mutation commands are never auto-retried** — after a timeout, call `get_scene_info` to check whether anything was applied before retrying.
 - Add-in logs to `~/fusion360livemcp.log`.
+- **Auto-launch (Windows):** when the add-in is unreachable on `localhost` and Fusion is not running, the server starts Fusion and marks this add-in as *run on startup* in Fusion's add-in list (`JSLoadedScriptsinfo`). If Fusion is already running it does nothing, so no unsaved work is lost. Set `FUSION360_LIVE_MCP_AUTOLAUNCH=0` to disable.
 - The `undo` tool includes a design-type safety guard — it checks before/after and auto-redoes if the undo would switch from parametric to direct mode.
 - This fork is tested on Fusion 2704.1.53 (Windows x86_64) — see [CORRECOES.md](CORRECOES.md) for the full validation log. Tools marked **(2026+)** need a build from 2026 or later.
+
+## Security
+
+- The add-in listens on `localhost:9876` with **no authentication**. Any program running under your user account can connect and send commands — including `execute_code`, which runs arbitrary Python inside Fusion with your permissions. Only run the add-in on machines where you trust the local software.
+- Connections that don't speak the add-in's JSON protocol are dropped before any command is read. This blocks a web page from making your browser send commands to `localhost`.
+- `execute_code` is annotated as destructive, so MCP clients won't auto-approve it. Read the code an agent wants to run before approving it.
+- Binding to `0.0.0.0` (the LAN setup) extends the same trust to every machine on that network.
+- Please report vulnerabilities privately through the repository's **Security → Report a vulnerability** page, not in a public issue.
 
 ## Acknowledgements
 
@@ -335,4 +344,6 @@ Also built on ideas from the existing Fusion 360 MCP ecosystem:
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+Autodesk and Fusion are registered trademarks of Autodesk, Inc. This project is not affiliated with, endorsed by, or supported by Autodesk.

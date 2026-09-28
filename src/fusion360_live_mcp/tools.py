@@ -2866,7 +2866,8 @@ _READ_ONLY = {
     "get_design_type",
     "render_view",
 }
-_DESTRUCTIVE = {"delete_all", "delete_parameter", "delete_body"}
+# execute_code runs arbitrary Python, so clients must never auto-approve it
+_DESTRUCTIVE = {"delete_all", "delete_parameter", "delete_body", "execute_code"}
 _IDEMPOTENT = {
     "ping",
     "get_scene_info",

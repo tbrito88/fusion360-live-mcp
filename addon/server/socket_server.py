@@ -185,10 +185,16 @@ class Fusion360LiveMCPServer:
                     try:
                         command = json.loads(line)
                     except json.JSONDecodeError:
+                        command = None
+                    if not isinstance(command, dict):
+                        # Not our protocol (e.g. an HTTP request a web page sent
+                        # to localhost): drop the connection before the request
+                        # body can be read as a command.
+                        log.warning("Dropping client: non-JSON line %r", line[:60])
                         self._send(
                             client, {"status": "error", "message": "Invalid JSON"}
                         )
-                        continue
+                        return
                     self._dispatch(client, command)
 
                 # Fallback: try raw JSON blob (no newline framing)

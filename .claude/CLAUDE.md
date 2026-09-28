@@ -19,7 +19,7 @@ Claude Code ←(stdio MCP)→ This Server ←(TCP :9876)→ Fusion360LiveMCP Add
 
 ```bash
 uv sync --dev      # install deps
-uv run pytest -v   # run tests (385 tests)
+uv run pytest -v   # run tests (388 tests)
 uv run ruff check  # lint
 ```
 
@@ -36,7 +36,7 @@ start again). Run tests in a throwaway env instead:
 - `src/fusion360_live_mcp/tools.py` — 92 tool definitions with annotations
 - `src/fusion360_live_mcp/hints.py` — error-classification table (mirror of `addon/server/hints.py`)
 - `src/fusion360_live_mcp/mock.py` — mock responses for `--mode mock` testing
-- `tests/` — 385 tests covering tools, mock handlers, server routing, connection, annotations
+- `tests/` — 388 tests covering tools, mock handlers, server routing, connection, annotations
 
 ## Adding a new command
 

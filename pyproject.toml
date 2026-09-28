@@ -10,7 +10,7 @@ authors = [{ name = "tbrito88" }]
 dependencies = [
     "anyio>=4.5",
     "click>=8.1",
-    "mcp>=1.26,<2",  # fork: 2.x removeu Server.list_tools() e derruba o servidor
+    "mcp>=1.28.1,<2",  # fork: 2.x removeu Server.list_tools() e derruba o servidor
 ]
 
 [project.urls]
