@@ -6,7 +6,7 @@ commit `ba8560f` (2026-09-16), adaptado ao **Autodesk Fusion 2704.1.53**.
 | | |
 |---|---|
 | Ferramentas expostas | **92** (eram 93; +`delete_body` em 2026-09-22) |
-| Testes | **491 de 491 passam** — todos os bugs desta seção foram achados por teste real, nenhum por auditoria estática |
+| Testes | **496 de 496 passam** — todos os bugs desta seção foram achados por teste real, nenhum por auditoria estática |
 | Executado dentro do Fusion | sim — várias rodadas de teste ao vivo (CAM, modelagem) |
 
 ### Renomeação (2026-09-27)
@@ -757,3 +757,32 @@ validados ao vivo dentro do Fusion.
 Pares parafuso/furo roscados acusam uma sobreposição igual a
 π·(r_haste² − r_furo²)·L. É a zona de engrenamento dos filetes (o Fusion
 redimensiona os dois cilindros), não uma colisão.
+
+## 13. Auditoria das ferramentas contra a API em execução (2026-09-28)
+
+Rodada feita sobre o add-in com um verificador de API reforçado (ver fim da
+seção) e confirmada no Fusion 2704.1.53. Cada item abaixo foi reproduzido ao
+vivo antes da correção.
+
+| Ferramenta | O que acontecia | Correção |
+|---|---|---|
+| `add_constraint` tipo `fix` | chamava `GeometricConstraints.addFix`, que **não existe** — `AttributeError` em toda chamada | `entidade.isFixed = True` (propriedade da `SketchEntity`) |
+| `project_geometry` | `is_linked` era aceito e **ignorado**: o `Sketch.project` (aposentado) sempre cria projeção vinculada, aresta por aresta | `Sketch.project2(arestas, isLinked)` numa chamada só; `project` fica como alternativa em builds sem `project2`; o retorno informa `is_linked` |
+| `delete_body` | cada exclusão virava um recurso *Remove* na linha do tempo; um modelo real chegou a **846 Remove para 470 corpos**, com todos os corpos antigos guardados nas bases | o corpo vindo de um *base feature* é apagado dentro da edição dessa base (sem entrada nova; base que esvazia é apagada). Se algum recurso posterior usa o corpo, mantém o *Remove*, para não quebrar esse recurso: a verificação olha `bodies` e também as referências que não aparecem ali (ferramenta de combine mantida, origem de espelho/padrão/mover/escala/casca, ferramenta de divisão). `finishEdit` sempre em `finally` |
+| `fillet` / `chamfer` | o mock repetia `convexity` no retorno, o add-in real não | o add-in passa a devolver `convexity` (o agente confere o filtro aplicado) |
+| mocks (58 comandos) | o modo simulado devolvia chaves que o Fusion nunca manda — ex.: `boolean_operation` → `result_body/target_body` (real: `feature_name/target/tool`), `export_stl` → `body_name` (real: `body`, `exported`), `get_object_info` → `faces/edges` (real: `faces_count/edges_count`, `found`, `volume`…). Um agente testado em modo simulado aprendia o formato errado | todos espelham o formato real; contagens (`profile_count`, `points_count`, `component_count`, `body_count`) calculadas a partir dos parâmetros como no handler. O `ping` continua `{"ok": true, "status": "pong"}`, que é o que a ponte de eventos responde |
+| recurso `fusion360://design` | a descrição prometia "components" e "features", que `get_scene_info` não devolve | descrição corrigida |
+| `addon/server/__init__.py` | linha longa sobrando do renome (falhava o `ruff check`) | corrigida |
+
+Testes novos: `test_delete_body_prefers_base_feature_edit`,
+`test_fix_constraint_uses_is_fixed`, `test_project_geometry_honours_is_linked`
+e `test_mock_return_keys_are_a_subset_of_the_real_handler` (compara, por AST,
+as chaves de retorno de cada mock com as do handler; provado com uma chave
+falsa injetada). 496 testes passando, `ruff check` limpo.
+
+### Limite da verificação estática
+
+As chamadas à API foram conferidas contra o módulo de runtime do Fusion, além
+dos stubs. Acesso a **atributo** (não chamada) de tipo desconhecido continua
+sem verificação estática — foi o caso do `TimelineObject.parentTimeline`, pego
+só no teste ao vivo.

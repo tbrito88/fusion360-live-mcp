@@ -26,7 +26,7 @@ _logger.addHandler(_sh)
 
 
 def get_logger(name: str = None) -> logging.Logger:
-    """Return a child logger.  ``get_logger("bridge")`` → ``fusion360livemcp.bridge``."""
+    """Return a child logger: ``get_logger("bridge")`` → ``fusion360livemcp.bridge``."""
     if name:
         return _logger.getChild(name)
     return _logger

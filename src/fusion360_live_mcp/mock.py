@@ -105,28 +105,41 @@ def mock_command(command_type: str, params: dict[str, Any] | None = None) -> dic
 # ── individual mock handlers ──────────────────────────────────────────
 
 
-def _ping(_p: dict) -> dict:
-    return {"status": "pong"}
+def _ping(p: dict) -> dict:
+    # Live, ping is answered by the add-in's event bridge (never reaches
+    # CommandHandler.ping): {"ok": True, "status": "pong"}.
+    return {"ok": True, "status": "pong"}
 
 
-def _get_scene_info(_p: dict) -> dict:
+def _get_scene_info(p: dict) -> dict:
+    # Mirrors CommandHandler.get_scene_info's return shape.
     return {
         "design_name": "MockDesign",
+        "design_type": None,
         "bodies": ["Body1"],
         "sketches": ["Sketch1"],
-        "features": ["Extrude1"],
-        "components": ["RootComponent"],
+        "bodies_count": 1,
+        "sketches_count": 1,
+        "features_count": 1,
+        "timeline_count": 1,
+        "camera": None,
     }
 
 
 def _get_object_info(p: dict) -> dict:
+    # Mirrors CommandHandler._object_info_for_body's return shape.
     name = p.get("name", "Unknown")
     return {
+        "found": True,
+        "type": "body",
         "name": name,
-        "type": "BRepBody",
-        "faces": 6,
-        "edges": 12,
-        "vertices": 8,
+        "volume": 1.0,
+        "area": 6.0,
+        "material": None,
+        "is_visible": True,
+        "faces_count": 6,
+        "edges_count": 12,
+        "vertices_count": 8,
         "bounding_box": {"min": [0, 0, 0], "max": [1, 1, 1]},
     }
 
@@ -145,37 +158,51 @@ def _get_bounding_box(p: dict) -> dict:
 
 
 def _create_sketch(p: dict) -> dict:
+    # Mirrors CommandHandler.create_sketch's return shape.
     plane = p.get("plane", "xy")
-    return {"sketch_name": f"Sketch_mock_{plane}", "plane": plane}
+    return {
+        "sketch_name": f"Sketch_mock_{plane}",
+        "plane": plane,
+        "z_offset": p.get("z_offset", 0),
+    }
 
 
 def _draw_rectangle(p: dict) -> dict:
+    # Mirrors CommandHandler.draw_rectangle's return shape.
     return {
-        "sketch_name": "Sketch_mock_xy",
+        "sketch": p.get("sketch_name", "Sketch1"),
         "width": p.get("width", 1),
         "height": p.get("height", 1),
     }
 
 
 def _draw_circle(p: dict) -> dict:
-    return {"sketch_name": "Sketch_mock_xy", "radius": p.get("radius", 1)}
+    # Mirrors CommandHandler.draw_circle's return shape.
+    return {
+        "sketch": p.get("sketch_name", "Sketch1"),
+        "radius": p.get("radius", 1),
+        "center": [0.0, 0.0, 0.0],
+    }
 
 
 def _draw_line(p: dict) -> dict:
+    # Mirrors CommandHandler.draw_line's return shape.
     return {
-        "sketch_name": "Sketch_mock_xy",
+        "sketch": p.get("sketch_name", "Sketch1"),
         "start": [p.get("start_x", 0), p.get("start_y", 0)],
         "end": [p.get("end_x", 1), p.get("end_y", 1)],
     }
 
 
 def _extrude(p: dict) -> dict:
+    # Mirrors CommandHandler.extrude's return shape.
     return {
         "feature_name": "Feature_mock",
         "bodies": ["Body_mock"],
         "body_name": "Body_mock",
         "height": p.get("height", 1),
         "operation": p.get("operation", "new_body"),
+        "direction": p.get("direction", None),
     }
 
 
@@ -190,25 +217,29 @@ def _revolve(p: dict) -> dict:
 
 
 def _fillet(p: dict) -> dict:
+    # Mirrors CommandHandler.fillet's return shape.
     return {
-        "body_name": p.get("body_name", "Body1"),
+        "feature_name": "Fillet1",
         "radius": p.get("radius", 0.1),
+        "edges_count": 1,
         "convexity": p.get("convexity", "any"),
     }
 
 
 def _chamfer(p: dict) -> dict:
+    # Mirrors CommandHandler.chamfer's return shape.
     return {
-        "body_name": p.get("body_name", "Body1"),
+        "feature_name": "Chamfer1",
         "distance": p.get("distance", 0.1),
+        "edges_count": 1,
         "convexity": p.get("convexity", "any"),
     }
 
 
 def _shell(p: dict) -> dict:
+    # Mirrors CommandHandler.shell's return shape.
     return {
         "feature_name": "Shell1",
-        "body_name": p.get("body_name", "Body1"),
         "thickness": p.get("thickness", 0.1),
         "faces_removed": 1,
         "removed_face_z": [0.0],
@@ -216,16 +247,23 @@ def _shell(p: dict) -> dict:
 
 
 def _mirror(p: dict) -> dict:
+    # Mirrors CommandHandler.mirror's return shape.
     return {
-        "new_bodies": ["Body_mock_copy"],
-        "body_name": p.get("body_name", "Body1"),
+        "feature_name": "Mirror1",
         "mirror_plane": p.get("mirror_plane", "yz"),
+        "new_bodies": ["Body_mock_copy"],
         "new_body_name": "Body1_mirrored",
     }
 
 
 def _delete_body(p: dict) -> dict:
-    return {"deleted": True, "body": p.get("body_name", "Body1"), "volume": 1.0}
+    # Mirrors CommandHandler.delete_body's return shape.
+    return {
+        "deleted": True,
+        "body": p.get("body_name", "Body1"),
+        "volume": 1.0,
+        "method": "base_feature_edit",
+    }
 
 
 def _rename_body(p: dict) -> dict:
@@ -253,22 +291,29 @@ def _move_body(p: dict) -> dict:
 
 
 def _export_stl(p: dict) -> dict:
+    # Mirrors CommandHandler.export_stl's return shape.
     name = p.get("body_name", "Body1")
     path = p.get("file_path", f"~/Desktop/{name}.stl")
-    return {"body_name": name, "file_path": path}
+    return {"exported": True, "body": name, "file_path": path}
 
 
 def _boolean_operation(p: dict) -> dict:
+    # Mirrors CommandHandler.boolean_operation's return shape.
     return {
-        "target_body": p.get("target_body", "Body1"),
-        "tool_body": p.get("tool_body", "Body2"),
+        "feature_name": "BooleanOperation1",
         "operation": p.get("operation", "join"),
-        "result_body": p.get("target_body", "Body1"),
+        "target": p.get("target_body", "Body1"),
+        "tool": p.get("tool_body", "Body2"),
     }
 
 
-def _delete_all(_p: dict) -> dict:
-    return {"deleted": True}
+def _delete_all(p: dict) -> dict:
+    # Mirrors CommandHandler.delete_all's return shape.
+    return {
+        "deleted": True,
+        "remaining": None,
+        "errors": [],
+    }
 
 
 def _undo(_p: dict) -> dict:
@@ -314,27 +359,29 @@ def _sweep(p: dict) -> dict:
 
 
 def _loft(p: dict) -> dict:
+    # Mirrors CommandHandler.loft's return shape.
     return {
         "feature_name": "Feature_mock",
         "bodies": ["Body_mock_loft"],
         "body_name": "Body_mock_loft",
-        "profile_sketch_names": p.get("profile_sketch_names", []),
         "operation": p.get("operation", "new_body"),
+        "profile_count": len(p.get("profile_sketch_names") or ["S1", "S2"]),
     }
 
 
 def _create_polygon(p: dict) -> dict:
+    # Mirrors CommandHandler.create_polygon's return shape.
     return {
-        "sketch_name": "Sketch_mock_xy",
+        "sketch": p.get("sketch_name", "Sketch1"),
         "sides": p.get("sides", 6),
         "radius": p.get("radius", 1),
     }
 
 
 def _draw_arc(p: dict) -> dict:
+    # Mirrors CommandHandler.draw_arc's return shape.
     return {
-        "sketch_name": "Sketch_mock_xy",
-        "center": [p.get("center_x", 0), p.get("center_y", 0)],
+        "sketch": p.get("sketch_name", "Sketch1"),
         "sweep_angle": p.get("sweep_angle", 90),
     }
 
@@ -344,7 +391,6 @@ def _create_hole(p: dict) -> dict:
     diameter = p.get("diameter", 0.5)
     return {
         "feature_name": "Hole_mock",
-        "body_name": body,
         "diameter": diameter,
         "depth": p.get("depth", 1),
         "actual_diameter": diameter,
@@ -354,12 +400,12 @@ def _create_hole(p: dict) -> dict:
 
 
 def _rectangular_pattern(p: dict) -> dict:
+    # Mirrors CommandHandler.rectangular_pattern's return shape.
     return {
-        "new_bodies": ["Body_mock_copy"],
-        "body_name": p.get("body_name", "Body1"),
+        "feature_name": "RectangularPattern1",
         "x_count": p.get("x_count", 1),
         "y_count": p.get("y_count", 1),
-        "created_bodies": p.get("x_count", 1) * p.get("y_count", 1),
+        "new_bodies": ["Body_mock_copy"],
     }
 
 
@@ -376,27 +422,29 @@ def _circular_pattern(p: dict) -> dict:
 
 
 def _create_component(p: dict) -> dict:
+    # Mirrors CommandHandler.create_component's return shape.
     return {
-        "component_name": p.get("name", "Component1"),
-        "parent": p.get("parent_name", "RootComponent"),
+        "created": True,
+        "name": p.get("name", None),
     }
 
 
 def _add_joint(p: dict) -> dict:
+    # Mirrors CommandHandler.add_joint's return shape.
     return {
-        "component_one": p.get("component_one", "Comp1"),
-        "component_two": p.get("component_two", "Comp2"),
+        "created": True,
         "joint_type": p.get("joint_type", "rigid"),
-        "joint_name": "Joint_mock",
     }
 
 
-def _list_components(_p: dict) -> dict:
+def _list_components(p: dict) -> dict:
+    # Mirrors CommandHandler.list_components's return shape.
     return {
         "components": [
             {"name": "RootComponent", "bodies": ["Body1"]},
             {"name": "SubComponent1", "bodies": []},
         ],
+        "count": 1,
     }
 
 
@@ -404,14 +452,16 @@ def _list_components(_p: dict) -> dict:
 
 
 def _export_step(p: dict) -> dict:
+    # Mirrors CommandHandler.export_step's return shape.
     name = p.get("body_name", "Body1")
     path = p.get("file_path", f"~/Desktop/{name}.step")
-    return {"body_name": name, "file_path": path}
+    return {"exported": True, "body": name, "file_path": path}
 
 
 def _export_f3d(p: dict) -> dict:
+    # Mirrors CommandHandler.export_f3d's return shape.
     path = p.get("file_path", "~/Desktop/MockDesign.f3d")
-    return {"file_path": path}
+    return {"exported": True, "file_path": path}
 
 
 def _export_view_sheet(p: dict) -> dict:
@@ -482,12 +532,14 @@ def _create_box_parametric(p: dict) -> dict:
 # ── parameter tools ───────────────────────────────────────────────────
 
 
-def _get_parameters(_p: dict) -> dict:
+def _get_parameters(p: dict) -> dict:
+    # Mirrors CommandHandler.get_parameters's return shape.
     return {
         "parameters": [
             {"name": "width", "value": 10.0, "unit": "mm", "comment": ""},
             {"name": "height", "value": 5.0, "unit": "mm", "comment": ""},
         ],
+        "count": 1,
     }
 
 
@@ -503,7 +555,6 @@ def _create_parameter(p: dict) -> dict:
         "value": value,
         "unit": unit,
         "expression": f"{value} {unit}" if unit else f"{value}",
-        "comment": p.get("comment", ""),
     }
 
 
@@ -528,11 +579,10 @@ def _delete_parameter(p: dict) -> dict:
 
 
 def _add_constraint(p: dict) -> dict:
+    # Mirrors CommandHandler.add_constraint's return shape.
     return {
+        "sketch": p.get("sketch_name", "Sketch1"),
         "constraint_type": p.get("constraint_type", "coincident"),
-        "entity_one": p.get("entity_one", 0),
-        "entity_two": p.get("entity_two", 1),
-        "sketch_name": p.get("sketch_name", "Sketch1"),
     }
 
 
@@ -548,11 +598,11 @@ def _auto_constrain(p: dict) -> dict:
 
 
 def _add_dimension(p: dict) -> dict:
+    # Mirrors CommandHandler.add_dimension's return shape.
     return {
+        "sketch": p.get("sketch_name", "Sketch1"),
         "dimension_type": p.get("dimension_type", "distance"),
         "value": p.get("value", 1.0),
-        "entity_one": p.get("entity_one", 0),
-        "sketch_name": p.get("sketch_name", "Sketch1"),
     }
 
 
@@ -560,15 +610,19 @@ def _add_dimension(p: dict) -> dict:
 
 
 def _create_construction_plane(p: dict) -> dict:
+    # Mirrors CommandHandler.create_construction_plane's return shape.
     return {
-        "plane_name": "ConstructionPlane_mock",
+        "created": True,
+        "name": None,
         "method": p.get("method", "offset"),
     }
 
 
 def _create_construction_axis(p: dict) -> dict:
+    # Mirrors CommandHandler.create_construction_axis's return shape.
     return {
-        "axis_name": "ConstructionAxis_mock",
+        "created": True,
+        "name": None,
         "method": p.get("method", "two_points"),
     }
 
@@ -577,10 +631,11 @@ def _create_construction_axis(p: dict) -> dict:
 
 
 def _draw_spline(p: dict) -> dict:
+    # Mirrors CommandHandler.draw_spline's return shape.
     return {
-        "sketch_name": "Sketch_mock_xy",
+        "sketch": p.get("sketch_name", "Sketch1"),
         "spline_type": p.get("spline_type", "fit_points"),
-        "point_count": len(p.get("points", [])),
+        "points_count": len(p.get("points") or [[0, 0], [1, 1]]),
     }
 
 
@@ -588,25 +643,25 @@ def _draw_spline(p: dict) -> dict:
 
 
 def _offset_curve(p: dict) -> dict:
+    # Mirrors CommandHandler.offset_curve's return shape.
     return {
-        "sketch_name": p.get("sketch_name", "Sketch1"),
+        "sketch": p.get("sketch_name", "Sketch1"),
         "offset_distance": p.get("offset_distance", 0.5),
-        "new_curve_count": 4,
     }
 
 
 def _trim_curve(p: dict) -> dict:
+    # Mirrors CommandHandler.trim_curve's return shape.
     return {
-        "sketch_name": p.get("sketch_name", "Sketch1"),
-        "curve_index": p.get("curve_index", 0),
+        "sketch": p.get("sketch_name", "Sketch1"),
         "trimmed": True,
     }
 
 
 def _extend_curve(p: dict) -> dict:
+    # Mirrors CommandHandler.extend_curve's return shape.
     return {
-        "sketch_name": p.get("sketch_name", "Sketch1"),
-        "curve_index": p.get("curve_index", 0),
+        "sketch": p.get("sketch_name", "Sketch1"),
         "extended": True,
     }
 
@@ -615,7 +670,7 @@ def _extend_curve(p: dict) -> dict:
 
 
 def _create_thread(p: dict) -> dict:
-    # Mesmo formato da resposta real do add-in (fork: create_thread reescrita).
+    # Mirrors CommandHandler.create_thread's return shape.
     return {
         "feature_name": "Thread_mock",
         "thread_type": p.get("thread_type", "ISO Metric profile"),
@@ -623,41 +678,48 @@ def _create_thread(p: dict) -> dict:
         "class": p.get("thread_class", "6g"),
         "internal": p.get("is_internal", False),
         "modeled": p.get("is_modeled", False),
+        "face_index": p.get("face_index", None),
+        "axis_distance": None,
+        "diameter_before": None,
+        "diameter_after": None,
     }
 
 
 def _draft_faces(p: dict) -> dict:
+    # Mirrors CommandHandler.draft_faces's return shape.
     return {
-        "body_name": p.get("body_name", "Body1"),
+        "feature_name": "DraftFaces1",
         "angle": p.get("angle", 5),
-        "face_count": 4,
     }
 
 
 def _split_body(p: dict) -> dict:
+    # Mirrors CommandHandler.split_body's return shape.
     return {
-        "body_name": p.get("body_name", "Body1"),
-        "result_bodies": ["Body1", "Body1_split"],
+        "feature_name": "SplitBody1",
+        "splitting_plane": p.get("splitting_plane", None),
     }
 
 
 def _split_face(p: dict) -> dict:
+    # Mirrors CommandHandler.split_face's return shape.
     return {
-        "body_name": p.get("body_name", "Body1"),
-        "faces_split": 2,
+        "feature_name": "SplitFace1",
     }
 
 
 def _offset_faces(p: dict) -> dict:
+    # Mirrors CommandHandler.offset_faces's return shape.
     return {
-        "body_name": p.get("body_name", "Body1"),
+        "feature_name": "OffsetFaces1",
         "distance": p.get("distance", 0.5),
     }
 
 
 def _scale_body(p: dict) -> dict:
+    # Mirrors CommandHandler.scale_body's return shape.
     return {
-        "body_name": p.get("body_name", "Body1"),
+        "feature_name": "ScaleBody1",
         "scale": p.get("scale", 1.0),
     }
 
@@ -666,7 +728,9 @@ def _scale_body(p: dict) -> dict:
 
 
 def _create_box(p: dict) -> dict:
+    # Mirrors CommandHandler.create_box's return shape.
     return {
+        "created": True,
         "body_name": "Box_mock",
         "length": p.get("length", 1),
         "width": p.get("width", 1),
@@ -675,7 +739,9 @@ def _create_box(p: dict) -> dict:
 
 
 def _create_cylinder(p: dict) -> dict:
+    # Mirrors CommandHandler.create_cylinder's return shape.
     return {
+        "created": True,
         "body_name": "Cylinder_mock",
         "radius": p.get("radius", 1),
         "height": p.get("height", 1),
@@ -683,14 +749,18 @@ def _create_cylinder(p: dict) -> dict:
 
 
 def _create_sphere(p: dict) -> dict:
+    # Mirrors CommandHandler.create_sphere's return shape.
     return {
+        "created": True,
         "body_name": "Sphere_mock",
         "radius": p.get("radius", 1),
     }
 
 
 def _create_torus(p: dict) -> dict:
+    # Mirrors CommandHandler.create_torus's return shape.
     return {
+        "created": True,
         "body_name": "Torus_mock",
         "major_radius": p.get("major_radius", 2),
         "minor_radius": p.get("minor_radius", 0.5),
@@ -701,18 +771,18 @@ def _create_torus(p: dict) -> dict:
 
 
 def _create_as_built_joint(p: dict) -> dict:
+    # Mirrors CommandHandler.create_as_built_joint's return shape.
     return {
-        "component_one": p.get("component_one", "Comp1"),
-        "component_two": p.get("component_two", "Comp2"),
+        "created": True,
         "joint_type": p.get("joint_type", "rigid"),
-        "joint_name": "AsBuiltJoint_mock",
     }
 
 
 def _create_rigid_group(p: dict) -> dict:
+    # Mirrors CommandHandler.create_rigid_group's return shape.
     return {
-        "component_names": p.get("component_names", []),
-        "rigid_group_name": "RigidGroup_mock",
+        "created": True,
+        "component_count": len(p.get("component_names") or ["A", "B"]),
     }
 
 
@@ -720,9 +790,8 @@ def _create_rigid_group(p: dict) -> dict:
 
 
 def _measure_distance(p: dict) -> dict:
+    # Mirrors CommandHandler.measure_distance's return shape.
     return {
-        "entity_one": p.get("entity_one", "Body1"),
-        "entity_two": p.get("entity_two", "Body2"),
         "distance": 2.54,
         "point_one": [0, 0, 0],
         "point_two": [2.54, 0, 0],
@@ -734,8 +803,8 @@ def _measure_angle(_p: dict) -> dict:
 
 
 def _get_physical_properties(p: dict) -> dict:
+    # Mirrors CommandHandler.get_physical_properties's return shape.
     return {
-        "body_name": p.get("body_name", "Body1"),
         "mass": 0.785,
         "volume": 1.0,
         "area": 6.0,
@@ -745,18 +814,19 @@ def _get_physical_properties(p: dict) -> dict:
 
 
 def _create_section_analysis(p: dict) -> dict:
+    # Mirrors CommandHandler.create_section_analysis's return shape.
     return {
+        "created": True,
         "plane": p.get("plane", "yz"),
         "offset": p.get("offset", 0),
-        "analysis_name": "SectionAnalysis_mock",
     }
 
 
 def _check_interference(p: dict) -> dict:
+    # Mirrors CommandHandler.check_interference's return shape.
     return {
-        "component_names": p.get("component_names", []),
-        "interference_count": 0,
         "interferences": [],
+        "count": 1,
     }
 
 
@@ -803,10 +873,11 @@ def _set_color(p: dict) -> dict:
 
 
 def _set_appearance(p: dict) -> dict:
+    # Mirrors CommandHandler.set_appearance's return shape.
     return {
-        "target_name": p.get("target_name", "Body1"),
-        "appearance_name": p.get("appearance_name", "Steel - Satin"),
         "applied": True,
+        "target": p.get("target_name", "Body1"),
+        "appearance": p.get("appearance_name", "Steel - Satin"),
     }
 
 
@@ -814,10 +885,12 @@ def _set_appearance(p: dict) -> dict:
 
 
 def _project_geometry(p: dict) -> dict:
+    # Mirrors CommandHandler.project_geometry's return shape.
     return {
-        "source_name": p.get("source_name", "Body1"),
-        "sketch_name": p.get("sketch_name", "Sketch1"),
+        "sketch": p.get("sketch_name", "Sketch1"),
+        "source": p.get("source_name", "Body1"),
         "projected_curves": 4,
+        "is_linked": bool(p.get("is_linked", True)),
     }
 
 
@@ -848,26 +921,26 @@ def _unsuppress_feature(p: dict) -> dict:
 
 
 def _patch_surface(p: dict) -> dict:
+    # Mirrors CommandHandler.patch_surface's return shape.
     return {
-        "sketch_name": p.get("sketch_name", "Sketch1"),
-        "body_name": "PatchSurface_mock",
+        "feature_name": "PatchSurface1",
         "continuity": p.get("continuity", "connected"),
     }
 
 
 def _stitch_surfaces(p: dict) -> dict:
+    # Mirrors CommandHandler.stitch_surfaces's return shape.
     return {
-        "body_names": p.get("body_names", []),
-        "result_body": "StitchedBody_mock",
-        "tolerance": p.get("tolerance", 0.01),
+        "feature_name": "StitchSurfaces1",
+        "body_count": len(p.get("body_names") or ["S1", "S2"]),
     }
 
 
 def _thicken_surface(p: dict) -> dict:
+    # Mirrors CommandHandler.thicken_surface's return shape.
     return {
-        "body_name": p.get("body_name", "Surface1"),
+        "feature_name": "ThickenSurface1",
         "thickness": p.get("thickness", 0.1),
-        "result_body": "ThickenedBody_mock",
     }
 
 
@@ -909,9 +982,11 @@ def _create_bend(p: dict) -> dict:
 
 
 def _flat_pattern(p: dict) -> dict:
+    # Mirrors CommandHandler.flat_pattern's return shape.
     return {
-        "body_name": p.get("body_name", "SheetBody1"),
-        "flat_pattern_name": "FlatPattern_mock",
+        "created": False,
+        "body": p.get("body_name", "SheetBody1"),
+        "message": "Component already has a flat pattern",
     }
 
 
@@ -959,52 +1034,45 @@ def _cam_create_operation(p: dict) -> dict:
 
 
 def _cam_generate_toolpath(p: dict) -> dict:
+    # Mirrors CommandHandler.cam_generate_toolpath's return shape.
     return {
-        "setup_name": p.get("setup_name", "Setup1"),
-        "operation_name": p.get("operation_name"),
         "generated": True,
-        "toolpath_count": 1,
+        "scope": "operation",
+        "operation": p.get("operation_name"),
     }
 
 
 def _cam_post_process(p: dict) -> dict:
+    # Mirrors CommandHandler.cam_post_process's return shape.
     setup = p.get("setup_name", "Setup1")
-    post = p.get("post_processor", "fanuc")
     return {
-        "setup_name": setup,
-        "post_processor": post,
-        "output_file": f"~/Desktop/{setup}.nc",
-        "output_units": p.get("output_units", "mm"),
+        "setup": setup,
+        "post_processor": p.get("post_processor", "fanuc"),
+        "output_folder": p.get("output_folder", "~/Desktop"),
+        "units": p.get("output_units", "mm"),
+        "program_name": p.get("program_name", setup),
     }
 
 
-def _cam_list_setups(_p: dict) -> dict:
+def _cam_list_setups(p: dict) -> dict:
+    # Mirrors CommandHandler.cam_list_setups's return shape.
     return {
         "setups": [
-            {
-                "name": "Setup1",
-                "operation_type": "milling",
-                "operation_count": 2,
-            },
+            {"name": "Setup1", "operation_type": "milling", "operation_count": 2}
         ],
+        "count": 1,
     }
 
 
 def _cam_list_operations(p: dict) -> dict:
+    # Mirrors CommandHandler.cam_list_operations's return shape.
     return {
-        "setup_name": p.get("setup_name", "Setup1"),
+        "setup": p.get("setup_name", "Setup1"),
         "operations": [
-            {
-                "name": "Face1",
-                "strategy": "face",
-                "has_toolpath": True,
-            },
-            {
-                "name": "2D Contour1",
-                "strategy": "2d_contour",
-                "has_toolpath": False,
-            },
+            {"name": "Face1", "strategy": "face", "has_toolpath": True},
+            {"name": "2D Contour1", "strategy": "2d_contour", "has_toolpath": False},
         ],
+        "count": 1,
     }
 
 
@@ -1051,19 +1119,28 @@ def _default_mock(p: dict) -> dict:
 
 # ── dispatch table ────────────────────────────────────────────────────
 
+
 def _convert_to_sheet_metal(p: dict) -> dict:
-    return {"converted": True, "body": p.get("body_name", "Body1"),
-            "rule": p.get("rule_name") or "Steel"}
+    return {
+        "converted": True,
+        "body": p.get("body_name", "Body1"),
+        "rule": p.get("rule_name") or "Steel",
+    }
 
 
 def _fold_sheet_metal(p: dict) -> dict:
-    return {"feature_name": "Fold_mock", "bend_angle": p.get("bend_angle", 90),
-            "line_index": p.get("line_index", 0)}
+    return {
+        "feature_name": "Fold_mock",
+        "bend_angle": p.get("bend_angle", 90),
+        "line_index": p.get("line_index", 0),
+    }
 
 
 def _export_flat_pattern_dxf(p: dict) -> dict:
-    return {"exported": True,
-            "file_path": p.get("file_path") or "~/Desktop/Body1_planificado.dxf"}
+    return {
+        "exported": True,
+        "file_path": p.get("file_path") or "~/Desktop/Body1_planificado.dxf",
+    }
 
 
 _DISPATCH: dict[str, Any] = {

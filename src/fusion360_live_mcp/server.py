@@ -263,7 +263,7 @@ def build_app(mode: str, host: str, port: int) -> Server:
             types.Resource(
                 uri="fusion360://design",
                 name="Design Tree",
-                description="Full design tree: bodies, sketches, features, components",
+                description="Design summary: bodies, sketches, counts, camera",
                 mimeType="application/json",
             ),
             types.Resource(

@@ -64,7 +64,7 @@ class TestMockResources:
         result = _send("mock", "get_scene_info")
         assert "design_name" in result
         assert "bodies" in result
-        assert "components" in result
+        assert "features_count" in result
 
     def test_parameters_resource(self):
         result = _send("mock", "get_parameters")
@@ -195,7 +195,7 @@ class TestResourceTemplates:
         """Reading fusion360://body/{name} should return object info."""
         result = _send("mock", "get_object_info", {"name": "TestBody"})
         assert result["name"] == "TestBody"
-        assert "faces" in result
+        assert "faces_count" in result
 
     def test_component_template_read(self):
         """Reading fusion360://component/{name} delegates to get_object_info."""
@@ -265,7 +265,7 @@ class TestResourceTemplateReads:
         name = m.group(1)
         result = _send("mock", "get_object_info", {"name": name})
         assert result["name"] == "MyBox"
-        assert "faces" in result
+        assert "faces_count" in result
 
     def test_component_uri_extracts_name(self):
         uri = "fusion360://component/Bracket_v2"

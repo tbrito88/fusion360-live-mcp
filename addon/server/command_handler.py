@@ -829,7 +829,9 @@ class CommandHandler:
             "perpendicular": lambda: constraints.addPerpendicular(e1, e2),
             "tangent": lambda: constraints.addTangent(e1, e2),
             "equal": lambda: constraints.addEqual(e1, e2),
-            "fix": lambda: constraints.addFix(e1),
+            # FIX (fork): GeometricConstraints has no addFix (live
+            # AttributeError); "fix" is the entity's isFixed property.
+            "fix": lambda: setattr(e1, "isFixed", True),
             "horizontal": lambda: constraints.addHorizontal(e1),
             "vertical": lambda: constraints.addVertical(e1),
             "concentric": lambda: constraints.addConcentric(e1, e2),
@@ -997,15 +999,23 @@ class CommandHandler:
         )
         body = self._body_by_name(source_name)
 
-        projected = []
-        for edge in body.edges:
-            proj = sketch.project(edge)
-            projected.append(proj.count)
+        # FIX (fork): is_linked was accepted and silently ignored -- the
+        # retired Sketch.project always makes linked projections. project2
+        # (the current API) takes isLinked and projects every edge at once.
+        edges = list(body.edges)
+        try:
+            count = len(sketch.project2(edges, bool(is_linked)))
+            method = "project2"
+        except AttributeError:
+            # Builds without project2: per-edge project, always linked.
+            count = sum(sketch.project(edge).count for edge in edges)
+            method = "project"
 
         return {
             "sketch": sketch.name,
             "source": source_name,
-            "projected_curves": sum(projected),
+            "projected_curves": count,
+            "is_linked": bool(is_linked) if method == "project2" else True,
         }
 
     # ------------------------------------------------------------------
@@ -1451,7 +1461,12 @@ class CommandHandler:
             edges, adsk.core.ValueInput.createByReal(radius), True
         )
         feat = fillets.add(inp)
-        return {"feature_name": feat.name, "radius": radius, "edges_count": edges.count}
+        return {
+            "feature_name": feat.name,
+            "radius": radius,
+            "edges_count": edges.count,
+            "convexity": convexity,
+        }
 
     def chamfer(
         self,
@@ -1496,6 +1511,7 @@ class CommandHandler:
             "feature_name": feat.name,
             "distance": distance,
             "edges_count": edges.count,
+            "convexity": convexity,
         }
 
     @staticmethod
@@ -2190,12 +2206,20 @@ class CommandHandler:
         # actually went away. The parametric way is a Remove feature
         # (recorded in the timeline). Never report success without
         # checking the body really left its component.
-        method = "remove_feature"
-        try:
-            comp.features.removeFeatures.add(body)
-        except Exception:
-            method = "deleteMe"
-            body.deleteMe()
+        # FIX (fork): a Remove feature per deletion made the timeline grow
+        # without bound -- a live model reached 846 Remove features for 470
+        # bodies, every old body still stored inside its base feature. A body
+        # that came from a base feature is now deleted inside that feature's
+        # edit session (no timeline entry; an emptied base feature is deleted
+        # too). Everything else still gets the parametric Remove feature.
+        method = self._delete_in_base_feature(body, comp)
+        if method is None:
+            method = "remove_feature"
+            try:
+                comp.features.removeFeatures.add(body)
+            except Exception:
+                method = "deleteMe"
+                body.deleteMe()
         if comp.bRepBodies.count != n_before - 1:
             raise RuntimeError(
                 f"Body '{body_name}' is still present after {method} — "
@@ -2203,6 +2227,81 @@ class CommandHandler:
                 "creates it instead."
             )
         return {"deleted": True, "body": body_name, "volume": volume, "method": method}
+
+    @staticmethod
+    def _delete_in_base_feature(body, comp):
+        """Delete *body* inside the base feature that created it.
+
+        Returns the method name, or None when no (unsuppressed) base feature
+        of *comp* owns the body -- the caller then falls back to a Remove
+        feature.
+        """
+        token = body.entityToken
+        feats = comp.features.baseFeatures
+        for i in range(feats.count):
+            bf = feats.item(i)
+            if not any(b.entityToken == token for b in bf.bodies):
+                continue
+            if bf.timelineObject.isSuppressed:
+                return None
+            # A later feature uses the body: deleting it at the base would
+            # break that feature, so keep the Remove-feature path.
+            if CommandHandler._used_later(bf, token):
+                return None
+            bf.startEdit()
+            try:
+                inner = [b for b in bf.bodies if b.name == body.name]
+                if len(inner) != 1:
+                    return None
+                inner[0].deleteMe()
+            finally:
+                bf.finishEdit()
+            if bf.bodies.count == 0:
+                bf.deleteMe()
+                return "base_feature_emptied"
+            return "base_feature_edit"
+        return None
+
+    @staticmethod
+    def _used_later(base_feature, token):
+        """True when a timeline object after *base_feature* modifies the body."""
+        tl_obj = base_feature.timelineObject
+        # TimelineObject has no parentTimeline (live AttributeError): take
+        # the design's timeline through the owning component.
+        timeline = base_feature.parentComponent.parentDesign.timeline
+        for i in range(tl_obj.index + 1, timeline.count):
+            entity = timeline.item(i).entity
+            try:
+                if CommandHandler._references_body(entity, token):
+                    return True
+            except Exception:
+                return True  # cannot tell: be safe, use a Remove feature
+        return False
+
+    # Where a feature can hold a body without listing it in .bodies: a kept
+    # combine tool, the source of a mirror/pattern/move/scale/shell, a split
+    # tool. participantBodies is left out: a body that was cut is already in
+    # .bodies, and reading it after creation raises.
+    _BODY_REFS = (
+        "bodies",
+        "toolBodies",
+        "targetBody",
+        "inputEntities",
+        "splittingTool",
+    )
+
+    @staticmethod
+    def _references_body(entity, token):
+        for attr in CommandHandler._BODY_REFS:
+            value = getattr(entity, attr, None)
+            if value is None:
+                continue
+            items = value if hasattr(value, "__iter__") else [value]
+            for item in items:
+                owner = getattr(item, "body", item)  # faces/edges -> their body
+                if getattr(owner, "entityToken", None) == token:
+                    return True
+        return False
 
     def move_body(
         self,

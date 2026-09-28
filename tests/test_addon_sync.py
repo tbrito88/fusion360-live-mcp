@@ -135,3 +135,73 @@ def test_tools_match_addon_dispatch():
         f"  tools without handler: {sorted(tool_names - dispatch)}\n"
         f"  handlers without tool: {sorted(dispatch - tool_names)}"
     )
+
+
+# ── mock return shapes ↔ CommandHandler return shapes ─────────────────────
+#
+# 48 mock handlers once returned keys the real add-in never sends (e.g. mock
+# boolean_operation → result_body/target_body, real → feature_name/target/
+# tool). An agent developed against mock mode learned the wrong shape. The
+# handler's main success return is its literal dict with the most keys; the
+# mock may not invent keys outside it.
+
+_SHAPE_EXEMPT = {
+    "ping",  # answered by the event bridge, never reaches CommandHandler.ping
+    "get_object_info",  # built by _object_info_for_body/_sketch helpers
+}
+
+
+def _literal_return_keys(fn: ast.FunctionDef) -> set[str] | None:
+    best = None
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Return) and isinstance(n.value, ast.Dict):
+            keys = [k.value for k in n.value.keys if isinstance(k, ast.Constant)]
+            complete = len(keys) == len(n.value.keys)
+            if complete and (best is None or len(keys) > len(best)):
+                best = keys
+    return set(best) if best is not None else None
+
+
+def _all_return_keys(fn: ast.FunctionDef) -> set[str]:
+    keys: set[str] = set()
+    for n in ast.walk(fn):
+        if isinstance(n, ast.Return) and isinstance(n.value, ast.Dict):
+            keys |= {k.value for k in n.value.keys if isinstance(k, ast.Constant)}
+    return keys
+
+
+def test_mock_return_keys_are_a_subset_of_the_real_handler():
+    handler_path = REPO_ROOT / "addon" / "server" / "command_handler.py"
+    mock_path = REPO_ROOT / "src" / "fusion360_live_mcp" / "mock.py"
+    handler_src = handler_path.read_text(encoding="utf-8")
+    mock_src = mock_path.read_text(encoding="utf-8")
+    handler = {
+        f.name: f
+        for c in ast.parse(handler_src).body
+        if isinstance(c, ast.ClassDef) and c.name == "CommandHandler"
+        for f in c.body
+        if isinstance(f, ast.FunctionDef)
+    }
+    mock_tree = ast.parse(mock_src)
+    mock_funcs = {f.name: f for f in mock_tree.body if isinstance(f, ast.FunctionDef)}
+    command_to_mock = {}
+    for n in ast.walk(mock_tree):
+        if isinstance(n, ast.Dict):
+            for k, v in zip(n.keys, n.values, strict=False):
+                if (
+                    isinstance(k, ast.Constant)
+                    and isinstance(v, ast.Name)
+                    and v.id in mock_funcs
+                ):
+                    command_to_mock[k.value] = v.id
+    drift = {}
+    for cmd, mock_name in command_to_mock.items():
+        if cmd in _SHAPE_EXEMPT or cmd not in handler:
+            continue
+        real = _all_return_keys(handler[cmd])
+        if _literal_return_keys(handler[cmd]) is None:
+            continue  # handler builds its result dynamically
+        invented = _all_return_keys(mock_funcs[mock_name]) - real
+        if invented:
+            drift[cmd] = sorted(invented)
+    assert not drift, f"mock returns keys Fusion never sends: {drift}"

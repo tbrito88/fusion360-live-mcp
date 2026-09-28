@@ -112,3 +112,53 @@ class TestCheckInterference:
         assert "interferenceResultCount" not in attrs, (
             "interferenceResultCount belongs to the old, non-existent API"
         )
+
+
+def test_delete_body_prefers_base_feature_edit():
+    """delete_body must not leave one Remove feature per deletion.
+
+    A live model reached 846 Remove features for 470 bodies. Bodies from a
+    base feature are deleted inside its edit session; finishEdit must run
+    even if the deletion raises, or Fusion is left in base-feature edit mode.
+    """
+    helper = _method("_delete_in_base_feature")
+    calls = _called_attrs(helper)
+    assert {"startEdit", "finishEdit", "deleteMe"} <= calls
+    tries = [n for n in ast.walk(helper) if isinstance(n, ast.Try)]
+    assert any(
+        any(isinstance(c, ast.Call) and getattr(c.func, "attr", "") == "finishEdit"
+            for f in t.finalbody for c in ast.walk(f))
+        for t in tries
+    ), "finishEdit must be in a finally block"
+    assert "_delete_in_base_feature" in _called_attrs(_method("delete_body"))
+    # a body used by a later feature (fillet, combine...) must keep the Remove path
+    assert "_used_later" in calls
+
+
+def test_fix_constraint_uses_is_fixed():
+    """GeometricConstraints has no addFix: the "fix" constraint raised
+    AttributeError on every call (confirmed live on Fusion 2704.1.53)."""
+    node = _method("add_constraint")
+    assert "addFix" not in _called_attrs(node)
+    constants = {n.value for n in ast.walk(node) if isinstance(n, ast.Constant)}
+    assert "isFixed" in constants
+
+
+def test_project_geometry_honours_is_linked():
+    """The retired Sketch.project ignores is_linked (always linked);
+    project2(entities, isLinked) must be the primary path."""
+    node = _method("project_geometry")
+    assert "project2" in _called_attrs(node)
+
+
+def test_delete_body_sees_bodies_held_outside_bodies():
+    """A kept combine tool, a mirror/pattern source or a split tool is not in
+    the later feature's .bodies; deleting it at the base would silently undo
+    that feature. _used_later must look at those references too."""
+    import re
+
+    src = HANDLER.read_text(encoding="utf-8")
+    refs = re.search(r"_BODY_REFS = \(([^)]*)\)", src).group(1)
+    wanted = ("bodies", "toolBodies", "targetBody", "inputEntities", "splittingTool")
+    for attr in wanted:
+        assert f'"{attr}"' in refs, attr

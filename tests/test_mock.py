@@ -43,7 +43,7 @@ class TestMockSceneQuery:
     def test_get_object_info(self):
         result = mock_command("get_object_info", {"name": "TestBody"})
         assert result["name"] == "TestBody"
-        assert "faces" in result
+        assert "faces_count" in result
 
     def test_get_bounding_box(self):
         result = mock_command("get_bounding_box", {"name": "TestBody"})
@@ -151,12 +151,12 @@ class TestMockFeatures:
 
     def test_fillet(self):
         result = mock_command("fillet", {"radius": 0.5, "body_name": "Box"})
-        assert result["body_name"] == "Box"
+        assert "feature_name" in result
         assert result["radius"] == 0.5
 
     def test_chamfer(self):
         result = mock_command("chamfer", {"distance": 0.2, "body_name": "Box"})
-        assert result["body_name"] == "Box"
+        assert "feature_name" in result
 
     def test_fillet_convexity_echoed(self):
         result = mock_command(
@@ -167,7 +167,7 @@ class TestMockFeatures:
 
     def test_shell(self):
         result = mock_command("shell", {"thickness": 0.3, "body_name": "Box"})
-        assert result["body_name"] == "Box"
+        assert "feature_name" in result
         # same shape as the real handler: how many faces became the opening
         assert result["faces_removed"] == 1
         assert "removed_face_z" in result
@@ -196,7 +196,6 @@ class TestMockFeatures:
 
     def test_create_hole_falls_back_to_body_index(self):
         result = mock_command("create_hole", {"diameter": 0.5, "body_index": 1})
-        assert result["body_name"] == "Body2"
         assert result["cut_bodies"] == ["Body2"]
 
 
@@ -228,7 +227,7 @@ class TestMockBodyOps:
 
     def test_export_stl(self):
         result = mock_command("export_stl", {"body_name": "B1"})
-        assert result["body_name"] == "B1"
+        assert result["body"] == "B1"
         assert "file_path" in result
 
     def test_boolean_operation(self):
@@ -240,7 +239,7 @@ class TestMockBodyOps:
                 "operation": "cut",
             },
         )
-        assert result["target_body"] == "A"
+        assert result["target"] == "A"
         assert result["operation"] == "cut"
 
 
@@ -284,7 +283,7 @@ class TestMockNewGeometry:
                 "profile_sketch_names": ["Top", "Bottom"],
             },
         )
-        assert result["profile_sketch_names"] == ["Top", "Bottom"]
+        assert result["profile_count"] == 2
 
     def test_create_polygon(self):
         result = mock_command("create_polygon", {"sides": 8, "radius": 2})
@@ -315,7 +314,7 @@ class TestMockNewGeometry:
         )
         assert result["diameter"] == 0.5
         assert result["depth"] == 2
-        assert result["body_name"] == "Plate"
+        assert "cut_bodies" in result
 
     def test_rectangular_pattern(self):
         result = mock_command(
@@ -328,7 +327,7 @@ class TestMockNewGeometry:
         )
         assert result["x_count"] == 3
         assert result["y_count"] == 2
-        assert result["created_bodies"] == 6
+        assert "feature_name" in result
 
     def test_circular_pattern(self):
         result = mock_command(
@@ -358,7 +357,7 @@ class TestMockNewGeometry:
 class TestMockAssembly:
     def test_create_component(self):
         result = mock_command("create_component", {"name": "Bracket"})
-        assert result["component_name"] == "Bracket"
+        assert result["name"] == "Bracket"
 
     def test_add_joint(self):
         result = mock_command(
@@ -370,7 +369,7 @@ class TestMockAssembly:
             },
         )
         assert result["joint_type"] == "revolute"
-        assert "joint_name" in result
+        assert result["created"] is True
 
     def test_list_components(self):
         result = mock_command("list_components")
@@ -381,7 +380,7 @@ class TestMockAssembly:
 class TestMockExport:
     def test_export_step(self):
         result = mock_command("export_step", {"body_name": "Shaft"})
-        assert result["body_name"] == "Shaft"
+        assert result["body"] == "Shaft"
         assert "file_path" in result
 
     def test_export_f3d(self):
@@ -460,8 +459,7 @@ class TestMockConstraints:
             },
         )
         assert result["constraint_type"] == "coincident"
-        assert result["entity_one"] == 0
-        assert result["entity_two"] == 3
+        assert "sketch" in result
 
     def test_add_dimension_distance(self):
         result = mock_command(
@@ -488,7 +486,7 @@ class TestMockConstructionGeometry:
             },
         )
         assert result["method"] == "offset"
-        assert "plane_name" in result
+        assert result["created"] is True
 
     def test_create_construction_axis_two_points(self):
         result = mock_command(
@@ -500,7 +498,7 @@ class TestMockConstructionGeometry:
             },
         )
         assert result["method"] == "two_points"
-        assert "axis_name" in result
+        assert result["created"] is True
 
 
 class TestMockSplines:
@@ -514,7 +512,7 @@ class TestMockSplines:
             },
         )
         assert result["spline_type"] == "fit_points"
-        assert result["point_count"] == 4
+        assert result["points_count"] == 4
 
     def test_draw_spline_control_points(self):
         pts = [[0, 0, 0], [1, 2, 0], [3, 1, 0]]
@@ -539,7 +537,7 @@ class TestMockCurveOps:
             },
         )
         assert result["offset_distance"] == 0.5
-        assert "new_curve_count" in result
+        assert "sketch" in result
 
     def test_trim_curve(self):
         result = mock_command(
@@ -550,7 +548,7 @@ class TestMockCurveOps:
                 "point_y": 0.5,
             },
         )
-        assert result["curve_index"] == 2
+        assert "sketch" in result
         assert result["trimmed"] is True
 
     def test_extend_curve(self):
@@ -562,7 +560,7 @@ class TestMockCurveOps:
                 "point_y": 0,
             },
         )
-        assert result["curve_index"] == 1
+        assert "sketch" in result
         assert result["extended"] is True
 
 
@@ -576,18 +574,17 @@ class TestMockAdvancedFeatures:
                 "angle": 3,
             },
         )
-        assert result["body_name"] == "Housing"
+        assert "feature_name" in result
         assert result["angle"] == 3
 
     def test_split_body(self):
         result = mock_command("split_body", {"body_name": "Block"})
-        assert result["body_name"] == "Block"
-        assert len(result["result_bodies"]) == 2
+        assert "feature_name" in result
+        assert "splitting_plane" in result
 
     def test_split_face(self):
         result = mock_command("split_face", {"body_name": "Block"})
-        assert result["body_name"] == "Block"
-        assert result["faces_split"] > 0
+        assert "feature_name" in result
 
     def test_offset_faces(self):
         result = mock_command(
@@ -597,7 +594,7 @@ class TestMockAdvancedFeatures:
                 "distance": 0.2,
             },
         )
-        assert result["body_name"] == "Box"
+        assert "feature_name" in result
         assert result["distance"] == 0.2
 
     def test_scale_body(self):
@@ -608,7 +605,7 @@ class TestMockAdvancedFeatures:
                 "scale": 2.0,
             },
         )
-        assert result["body_name"] == "Widget"
+        assert "feature_name" in result
         assert result["scale"] == 2.0
 
 
@@ -664,9 +661,9 @@ class TestMockAssemblyExtended:
                 "joint_type": "revolute",
             },
         )
-        assert result["component_one"] == "Arm"
+        assert result["created"] is True
         assert result["joint_type"] == "revolute"
-        assert "joint_name" in result
+        assert result["created"] is True
 
     def test_create_rigid_group(self):
         result = mock_command(
@@ -675,8 +672,8 @@ class TestMockAssemblyExtended:
                 "component_names": ["A", "B", "C"],
             },
         )
-        assert result["component_names"] == ["A", "B", "C"]
-        assert "rigid_group_name" in result
+        assert result["component_count"] == 3
+        assert result["created"] is True
 
 
 class TestMockInspection:
@@ -688,7 +685,6 @@ class TestMockInspection:
                 "entity_two": "Body2",
             },
         )
-        assert result["entity_one"] == "Body1"
         assert isinstance(result["distance"], float)
         assert "point_one" in result
 
@@ -711,7 +707,6 @@ class TestMockInspection:
                 "body_name": "Bracket",
             },
         )
-        assert result["body_name"] == "Bracket"
         assert "mass" in result
         assert "volume" in result
         assert "area" in result
@@ -727,7 +722,7 @@ class TestMockInspection:
         )
         assert result["plane"] == "xz"
         assert result["offset"] == 2.5
-        assert "analysis_name" in result
+        assert result["created"] is True
 
     def test_check_interference(self):
         result = mock_command(
@@ -736,8 +731,8 @@ class TestMockInspection:
                 "component_names": ["Gear1", "Gear2"],
             },
         )
-        assert result["component_names"] == ["Gear1", "Gear2"]
-        assert "interference_count" in result
+        assert "count" in result
+        assert "interferences" in result
 
 
 class TestMockAppearance:
@@ -749,8 +744,8 @@ class TestMockAppearance:
                 "appearance_name": "Aluminum - Anodized Red",
             },
         )
-        assert result["target_name"] == "Housing"
-        assert result["appearance_name"] == "Aluminum - Anodized Red"
+        assert result["target"] == "Housing"
+        assert result["appearance"] == "Aluminum - Anodized Red"
         assert result["applied"] is True
 
 
@@ -763,9 +758,12 @@ class TestMockProjectGeometry:
                 "sketch_name": "Sketch2",
             },
         )
-        assert result["source_name"] == "TopEdge"
-        assert result["sketch_name"] == "Sketch2"
+        # same keys as CommandHandler.project_geometry (the mock used to
+        # return source_name/sketch_name, which Fusion never sends)
+        assert result["source"] == "TopEdge"
+        assert result["sketch"] == "Sketch2"
         assert "projected_curves" in result
+        assert result["is_linked"] is True
 
 
 class TestMockTimelineControl:
@@ -792,8 +790,7 @@ class TestMockTimelineControl:
 class TestMockSurfaceOps:
     def test_patch_surface(self):
         result = mock_command("patch_surface", {"sketch_name": "Boundary1"})
-        assert result["sketch_name"] == "Boundary1"
-        assert "body_name" in result
+        assert "feature_name" in result
 
     def test_stitch_surfaces(self):
         result = mock_command(
@@ -802,8 +799,8 @@ class TestMockSurfaceOps:
                 "body_names": ["Surf1", "Surf2"],
             },
         )
-        assert result["body_names"] == ["Surf1", "Surf2"]
-        assert "result_body" in result
+        assert result["body_count"] == 2
+        assert "feature_name" in result
 
     def test_thicken_surface(self):
         result = mock_command(
@@ -813,9 +810,8 @@ class TestMockSurfaceOps:
                 "thickness": 0.2,
             },
         )
-        assert result["body_name"] == "Surf1"
+        assert "feature_name" in result
         assert result["thickness"] == 0.2
-        assert "result_body" in result
 
 
 class TestMockCAM:
@@ -851,7 +847,7 @@ class TestMockCAM:
             },
         )
         assert result["generated"] is True
-        assert result["toolpath_count"] >= 1
+        assert "scope" in result
 
 
     def test_cam_list_setups(self):
@@ -867,7 +863,7 @@ class TestMockCAM:
                 "setup_name": "Setup1",
             },
         )
-        assert result["setup_name"] == "Setup1"
+        assert result["setup"] == "Setup1"
         assert "operations" in result
         assert len(result["operations"]) > 0
 
@@ -940,7 +936,7 @@ class TestMockForkRoscaChapaCAM:
 
     def test_flat_pattern(self):
         result = mock_command("flat_pattern", {"body_name": "Sheet1"})
-        assert result["body_name"] == "Sheet1"
+        assert result["body"] == "Sheet1"
 
     def test_convert_to_sheet_metal(self):
         result = mock_command("convert_to_sheet_metal", {"body_name": "Box1"})
