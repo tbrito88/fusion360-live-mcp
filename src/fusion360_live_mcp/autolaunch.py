@@ -112,8 +112,12 @@ def enable_run_on_startup() -> int:
             data["loadedScripts"] = entries
             changed += 1
         if changed:
-            with open(path, "w", encoding="utf-8") as fh:
+            # Fusion's own add-in list: write a sibling file and swap it in,
+            # so a crash mid-write can't leave it truncated.
+            tmp = path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
                 json.dump(data, fh, indent="\t")
+            os.replace(tmp, path)
     return changed
 
 

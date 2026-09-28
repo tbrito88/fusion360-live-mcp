@@ -567,3 +567,49 @@ class TestEndpointChange:
             if mod._connection:
                 mod._connection.disconnect()
             mod._connection = saved
+
+
+def test_only_read_only_commands_are_retried():
+    """A dropped connection after the send must not re-run a mutation.
+
+    Regression: the retry guard used the list of *body*-changing commands,
+    so draw_line, create_parameter, exports etc. ran up to three times.
+    """
+    import json as _json
+    import socket as _socket
+    import threading as _threading
+
+    from fusion360_live_mcp import connection as c
+    from fusion360_live_mcp.connection import FusionError
+    from fusion360_live_mcp.tools import TOOLS
+
+    received = []
+    srv = _socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(8)
+    port = srv.getsockname()[1]
+
+    def addin_that_drops_the_reply():
+        while True:
+            try:
+                conn, _ = srv.accept()
+            except OSError:
+                return
+            data = conn.recv(65536)
+            if data:
+                received.append(_json.loads(data)["type"])
+            conn.close()
+
+    _threading.Thread(target=addin_that_drops_the_reply, daemon=True).start()
+    old_delay, c._RETRY_DELAY = c._RETRY_DELAY, 0.0
+    try:
+        for tool in TOOLS:
+            if tool["annotations"]["readOnlyHint"]:
+                continue
+            received.clear()
+            with pytest.raises(FusionError):
+                c.Fusion360Connection("127.0.0.1", port).send_command(tool["name"])
+            assert received == [tool["name"]], tool["name"]
+    finally:
+        c._RETRY_DELAY = old_delay
+        srv.close()

@@ -17,7 +17,7 @@ from typing import Any
 
 from . import autolaunch
 from .hints import classify as _classify
-from .mock import _MUTATION_MOCKS as _MUTATION_COMMANDS
+from .tools import _READ_ONLY as _RETRY_SAFE
 
 log = logging.getLogger("fusion360_live_mcp.connection")
 
@@ -194,7 +194,9 @@ class Fusion360Connection:
             + "\n"
         )
 
-        is_mutation = command_type in _MUTATION_COMMANDS
+        # Only commands known to be read-only may be re-sent: anything else
+        # (sketch curves, parameters, exports...) could run twice.
+        is_mutation = command_type not in _RETRY_SAFE
         timeout = _socket_timeout(params, timeout)
         try:
             self._sock.sendall(payload.encode("utf-8"))

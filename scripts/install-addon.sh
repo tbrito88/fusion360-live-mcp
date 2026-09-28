@@ -30,10 +30,15 @@ if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
     rm -rf "$TARGET"
 fi
 
-# Create symlink for development (changes reflect immediately)
-ln -s "$ADDON_SRC" "$TARGET"
+# Link (not copy) so changes to addon/ reflect immediately.
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    ln -s "$ADDON_SRC" "$TARGET"
+else
+    # Git Bash's ln -s silently copies the folder; a junction needs no admin rights.
+    powershell.exe -NoProfile -Command         "New-Item -ItemType Junction -Path '$(cygpath -w "$TARGET")' -Target '$(cygpath -w "$ADDON_SRC")' | Out-Null"
+fi
 
-echo "  ✓ Installed via symlink"
+echo "  ✓ Installed as a link to $ADDON_SRC"
 echo ""
 echo "Next steps:"
 echo "  1. Open Fusion 360"
