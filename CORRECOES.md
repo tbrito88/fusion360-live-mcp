@@ -1,13 +1,12 @@
-# Correções aplicadas — fork local
+# Correções aplicadas neste fork
 
-Cópia de [faust-machines/fusion360-mcp-server](https://github.com/faust-machines/fusion360-mcp-server),
-commit `ba8560f` (2026-09-16), adaptada ao **Autodesk Fusion 2704.1.53**.
-Cópia local, sem `.git`.
+Derivado de [faust-machines/fusion360-mcp-server](https://github.com/faust-machines/fusion360-mcp-server),
+commit `ba8560f` (2026-09-16), adaptado ao **Autodesk Fusion 2704.1.53**.
 
 | | |
 |---|---|
 | Ferramentas expostas | **92** (eram 93; +`delete_body` em 2026-09-22) |
-| Testes | **381 de 381 passam** (no ambiente isolado `.venv`) — todos os bugs desta seção foram achados por teste real, nenhum por auditoria estática |
+| Testes | **385 de 385 passam** — todos os bugs desta seção foram achados por teste real, nenhum por auditoria estática |
 | Executado dentro do Fusion | sim — várias rodadas de teste ao vivo (CAM, modelagem) |
 
 ---

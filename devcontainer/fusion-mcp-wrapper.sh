@@ -58,4 +58,5 @@ if [ -z "$UVX" ]; then
     exit 1
 fi
 
-exec "$UVX" fusion360-mcp-server --mode socket
+# Install from this fork, not PyPI: the PyPI package of the same name is upstream's
+exec "$UVX" --from git+https://github.com/tbrito88/fusion360-mcp-server fusion360-mcp-server --mode socket

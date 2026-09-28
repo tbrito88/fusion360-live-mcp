@@ -18,18 +18,27 @@ The add-in uses a CustomEvent + work queue pattern to safely dispatch all Fusion
 
 ## Available tools (92)
 
+> Tools marked **(2026+)** require a recent Fusion build — they use APIs introduced in the January–July 2026 releases.
+
 ### Scene & Query
 | Tool | Description |
 |------|-------------|
-| `ping` | Health check (no Fusion API, instant) |
+| `ping` | Health check (instant, no Fusion API) |
 | `get_scene_info` | Design name, bodies, sketches, features, camera |
 | `get_object_info` | Detailed info about a named body or sketch |
+| `get_bounding_box` | Axis-aligned bbox (min/max/size/center) for body or component; unions all bodies when called on a component |
 | `list_components` | List all components in the design |
+
+### Design Type Safety
+| Tool | Description |
+|------|-------------|
+| `get_design_type` | Check if design is in parametric or direct mode |
+| `set_design_type` | Switch design type (parametric/direct recovery) |
 
 ### Sketching
 | Tool | Description |
 |------|-------------|
-| `create_sketch` | New sketch on xy/yz/xz, optional offset |
+| `create_sketch` | New sketch on xy/yz/xz plane, optional offset |
 | `draw_rectangle` | Rectangle in most recent sketch |
 | `draw_circle` | Circle in most recent sketch |
 | `draw_line` | Line in most recent sketch |
@@ -37,7 +46,7 @@ The add-in uses a CustomEvent + work queue pattern to safely dispatch all Fusion
 | `draw_spline` | Fit-point or control-point spline |
 | `create_polygon` | Regular polygon (3–64 sides) |
 | `add_constraint` | Geometric constraint (coincident, parallel, tangent, etc.) |
-| `auto_constrain` | Auto-constrain a sketch (Fusion 2026+ AutoConstrain API) |
+| `auto_constrain` | **(2026+)** Auto-constrain a sketch via the AutoConstrain API — 3 result options (thorough / fast / tolerance-adjusting) |
 | `add_dimension` | Driving dimension (distance, angle, radial, diameter) |
 | `offset_curve` | Offset connected sketch curves |
 | `trim_curve` | Trim at intersections |
@@ -58,8 +67,8 @@ The add-in uses a CustomEvent + work queue pattern to safely dispatch all Fusion
 | `create_hole` | Hole feature on a body face |
 | `rectangular_pattern` | Pattern in rows and columns |
 | `circular_pattern` | Pattern around an axis |
-| `create_thread` | Threads (cosmetic or modeled) |
-| `draft_faces` | Draft/taper for mold release |
+| `create_thread` | Add threads (cosmetic or modeled) |
+| `draft_faces` | Draft/taper faces for mold release |
 | `split_body` | Split a body using a plane |
 | `split_face` | Split faces of a body |
 | `offset_faces` | Push/pull faces by a distance |
@@ -71,14 +80,17 @@ The add-in uses a CustomEvent + work queue pattern to safely dispatch all Fusion
 | Tool | Description |
 |------|-------------|
 | `move_body` | Translate a body by (x, y, z) |
+| `rename_body` | Rename a body (searches root and all components) |
 | `boolean_operation` | Join/cut/intersect two bodies |
+| `delete_body` | Delete one named body (searches root and all components) — use instead of `undo` to remove a body |
 | `delete_all` | Clear the design |
-| `undo` | Undo last operation |
+| `undo` | Undo last operation (with design-type safety guard) |
 
 ### Direct Primitives
 | Tool | Description |
 |------|-------------|
-| `create_box` | Box (via TemporaryBRepManager) |
+| `create_box` | Box (via TemporaryBRepManager, history-less) |
+| `create_box_parametric` | History-based box: sketch rectangle + dimensions + extrude. `length`/`width`/`height` accept numbers (cm) or string expressions referencing User Parameters (e.g. `"boxL"`, `"outer - 2*wall_t"`) |
 | `create_cylinder` | Cylinder |
 | `create_sphere` | Sphere |
 | `create_torus` | Torus |
@@ -86,26 +98,24 @@ The add-in uses a CustomEvent + work queue pattern to safely dispatch all Fusion
 ### Surface Operations
 | Tool | Description |
 |------|-------------|
-| `patch_surface` | Patch surface from boundary edges |
-| `stitch_surfaces` | Stitch surface bodies into one |
-| `thicken_surface` | Thicken a surface into a solid |
-| `ruled_surface` | Ruled surface from an edge |
-| `trim_surface` | Trim a surface with another body |
+| `patch_surface` | Create a patch surface from boundary edges |
+| `stitch_surfaces` | Stitch surface bodies into a single body |
+| `thicken_surface` | Thicken a surface body into a solid |
 
 ### Sheet Metal
 | Tool | Description |
 |------|-------------|
-| `create_flange` | Create a flange on an edge |
-| `create_bend` | Add a bend |
-| `flat_pattern` | Create flat pattern |
-| `unfold` | Unfold specific bends |
+| `convert_to_sheet_metal` | Convert a solid body of uniform thickness into sheet metal (thickness taken from the geometry) |
+| `fold_sheet_metal` | Bend a sheet metal body along a line of the last sketch (draw the line with `draw_line` first) |
+| `flat_pattern` | Create the flat pattern of a sheet metal body (run `convert_to_sheet_metal` first) |
+| `export_flat_pattern_dxf` | Export the flat pattern as DXF for laser/plasma/waterjet cutting (run `flat_pattern` first) |
 
 ### Construction Geometry
 | Tool | Description |
 |------|-------------|
 | `create_construction_plane` | Offset, angle, midplane, 3-point, tangent |
 | `create_construction_axis` | Two-point, intersection, edge, perpendicular |
-| `create_ucs` | User Coordinate System at a point with optional rotation (2026+, preview) |
+| `create_ucs` | **(2026+, preview API)** User Coordinate System at a point with optional rotation |
 
 ### Assembly
 | Tool | Description |
@@ -123,32 +133,39 @@ The add-in uses a CustomEvent + work queue pattern to safely dispatch all Fusion
 | `get_physical_properties` | Mass, volume, area, center of mass |
 | `create_section_analysis` | Section plane through model |
 | `check_interference` | Detect collisions between components |
-| `compare_meshes` | Deviation stats between two mesh bodies (Fusion 2026+) |
+| `compare_meshes` | **(2026+)** Deviation statistics between two mesh bodies (min/max/mean/RMS, cm) — e.g. validate against a reference STL |
 
-### Appearance & Parameters
+### Appearance
 | Tool | Description |
 |------|-------------|
 | `set_appearance` | Assign material appearance from library |
-| `set_color` | Assign a flat RGB color to a body |
+| `set_color` | **(2026+)** Assign a flat RGB color (+ opacity) to a body |
+
+### Parameters
+| Tool | Description |
+|------|-------------|
 | `get_parameters` | List all user parameters |
 | `create_parameter` | Create a new parameter |
 | `set_parameter` | Update a parameter value |
 | `delete_parameter` | Remove a parameter |
 
-### Export
+### Import / Export
 | Tool | Description |
 |------|-------------|
-| `export_stl` | Export body as STL |
-| `export_step` | Export body as STEP |
+| `import_mesh` | Import STL/OBJ/3MF as mesh body via `MeshBodies.add()`. Unit-aware (`mm`/`cm`/`m`/`in`/`ft`). Returns the mesh name and bounding box |
+| `export_stl` | Export body as STL (supports bodies inside components) |
+| `export_step` | Export body as STEP (supports bodies inside components) |
 | `export_f3d` | Export design as Fusion archive |
+| `export_view_sheet` | Export multi-view PNG sheet (iso/front/top/right) for visual inspection |
+| `export` | Unified dispatcher — routes to `export_stl`/`export_step`/`export_f3d` based on explicit `format` or file-extension inference |
 
 ### CAM / Manufacturing
 | Tool | Description |
 |------|-------------|
-| `cam_create_setup` | Create a manufacturing setup (milling/turning/cutting) |
-| `cam_create_operation` | Add a machining operation (face, contour, adaptive, drilling, etc.) |
+| `cam_create_setup` | Create a manufacturing setup (milling/turning/cutting); applies stock mode/offsets |
+| `cam_create_operation` | Add a machining operation (face, contour, adaptive, drilling, etc.); applies stepdown/feed/speed/coolant parameters |
 | `cam_generate_toolpath` | Generate toolpaths for operations |
-| `cam_post_process` | Post-process to G-code (fanuc, grbl, haas, etc.) |
+| `cam_post_process` | Post-process to G-code — pass a full `.cps` path (cloud-post builds don't ship local posts) |
 | `cam_list_setups` | List all manufacturing setups |
 | `cam_list_operations` | List operations in a setup |
 | `cam_get_operation_info` | Get operation details (strategy, tool, parameters) |
@@ -161,7 +178,7 @@ The add-in uses a CustomEvent + work queue pattern to safely dispatch all Fusion
 ### Perception
 | Tool | Description |
 |------|-------------|
-| `render_view` | Capture the active viewport as a PNG. Pass `view=iso\|front\|top\|...` to reposition the camera first. Returns an image content block you can visually inspect to validate geometry before committing to more operations. |
+| `render_view` | Capture the active viewport as PNG (optional camera preset: iso/front/top/...). Returns an image block for visual verification |
 
 ## Response shape
 

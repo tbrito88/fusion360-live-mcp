@@ -360,12 +360,13 @@ class TestPromptGeneration:
             f"({args['length']}x{args['width']}x{args['height']} cm):\n"
             f"1. create_sketch on xy plane\n"
             f"2. draw_rectangle {args['width']}x{args['length']}\n"
-            f"3. extrude to sheet thickness\n"
-            f"4. create_flange on each edge\n"
-            f"5. flat_pattern to verify unfold"
+            f"3. extrude height={args['height']}\n"
+            f"4. shell the top face\n"
+            f"5. convert_to_sheet_metal\n"
+            f"6. flat_pattern"
         )
         assert "30x20x10 cm" in text
-        assert "create_flange" in text
+        assert "convert_to_sheet_metal" in text
         assert "flat_pattern" in text
 
 

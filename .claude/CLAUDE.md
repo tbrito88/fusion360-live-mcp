@@ -19,7 +19,7 @@ Claude Code ←(stdio MCP)→ This Server ←(TCP :9876)→ Fusion360MCP Add-in 
 
 ```bash
 uv sync --dev      # install deps
-uv run pytest -v   # run tests (275 tests)
+uv run pytest -v   # run tests (385 tests)
 uv run ruff check  # lint
 ```
 
@@ -36,7 +36,7 @@ start again). Run tests in a throwaway env instead:
 - `src/fusion360_mcp/tools.py` — 92 tool definitions with annotations
 - `src/fusion360_mcp/hints.py` — error-classification table (mirror of `addon/server/hints.py`)
 - `src/fusion360_mcp/mock.py` — mock responses for `--mode mock` testing
-- `tests/` — 275 tests covering tools, mock handlers, server routing, connection, annotations
+- `tests/` — 385 tests covering tools, mock handlers, server routing, connection, annotations
 
 ## Adding a new command
 

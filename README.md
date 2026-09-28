@@ -113,10 +113,10 @@ Then start Fusion and run the `Fusion360MCP` add-in. The log line `Server listen
 
 ```bash
 # Either via CLI flag
-uvx fusion360-mcp-server --mode socket --host 192.168.1.42
+uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket --host 192.168.1.42
 
 # Or via env var (useful in MCP client configs)
-FUSION_MCP_HOST=192.168.1.42 uvx fusion360-mcp-server --mode socket
+FUSION_MCP_HOST=192.168.1.42 uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket
 ```
 
 **Security note:** the TCP socket has no authentication. Only expose it on a trusted LAN — never bind to `0.0.0.0` on a host reachable from the public internet.

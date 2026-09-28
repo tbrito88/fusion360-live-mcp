@@ -30,7 +30,7 @@ Windows host (netsh portproxy)                                       │
 Two scripts handle it:
 
 1. **`fusion-mcp-bridge.ps1`** (Windows-side, run once as Administrator) — adds `netsh portproxy` rules forwarding the Docker bridge adapter IPs to `127.0.0.1:9876`, plus a Windows Firewall inbound rule scoped to the Docker subnet only. Both rules persist across reboots.
-2. **`fusion-mcp-wrapper.sh`** (devcontainer-side, configured as your MCP client's stdio command) — starts a Python TCP relay forwarding the container's `localhost:9876` to `host.docker.internal:9876`, then execs `uvx fusion360-mcp-server --mode socket`. The MCP server connects to `localhost:9876` unchanged; the relay bridges it to the Windows host.
+2. **`fusion-mcp-wrapper.sh`** (devcontainer-side, configured as your MCP client's stdio command) — starts a Python TCP relay forwarding the container's `localhost:9876` to `host.docker.internal:9876`, then execs this fork's server via `uvx --from git+https://github.com/tbrito88/fusion360-mcp-server fusion360-mcp-server --mode socket` (not the PyPI package of the same name, which is upstream's). The MCP server connects to `localhost:9876` unchanged; the relay bridges it to the Windows host.
 
 ## Setup
 
