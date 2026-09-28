@@ -6,7 +6,7 @@ import threading
 
 import pytest
 
-from fusion360_mcp.connection import (
+from fusion360_live_mcp.connection import (
     Fusion360Connection,
     FusionError,
     _socket_timeout,
@@ -208,7 +208,7 @@ class TestRetry:
         conn.connect()
 
         # Reduce retry delay so the test runs fast
-        monkeypatch.setattr("fusion360_mcp.connection._RETRY_DELAY", 0.05)
+        monkeypatch.setattr("fusion360_live_mcp.connection._RETRY_DELAY", 0.05)
 
         # Kill the underlying socket to simulate a dropped connection
         conn._sock.close()
@@ -220,7 +220,7 @@ class TestRetry:
 
     def test_send_command_exhausts_retries(self, monkeypatch):
         """After all retries fail, ConnectionError is raised."""
-        monkeypatch.setattr("fusion360_mcp.connection._RETRY_DELAY", 0.01)
+        monkeypatch.setattr("fusion360_live_mcp.connection._RETRY_DELAY", 0.01)
 
         conn = Fusion360Connection(host="127.0.0.1", port=1)
         # Force a socket so the first send attempt actually tries the wire
@@ -300,7 +300,7 @@ class TestGetConnectionSingleton:
 
     def test_reset_clears_singleton(self):
         """reset_connection should clear the cached connection."""
-        import fusion360_mcp.connection as mod
+        import fusion360_live_mcp.connection as mod
 
         saved = mod._connection
         try:
@@ -312,7 +312,7 @@ class TestGetConnectionSingleton:
 
     def test_reset_when_no_connection(self):
         """reset_connection should not error when nothing cached."""
-        import fusion360_mcp.connection as mod
+        import fusion360_live_mcp.connection as mod
 
         saved = mod._connection
         try:
@@ -325,7 +325,7 @@ class TestGetConnectionSingleton:
     def test_get_connection_returns_same_instance(self):
         """Repeated calls return the same connection object."""
         port, srv, _ = _start_echo_server()
-        import fusion360_mcp.connection as mod
+        import fusion360_live_mcp.connection as mod
 
         saved = mod._connection
         mod._connection = None
@@ -458,7 +458,7 @@ class TestMutationTimeoutSafety:
         return port
 
     def test_mutation_not_retried_on_timeout(self, monkeypatch):
-        monkeypatch.setattr("fusion360_mcp.connection._RETRY_DELAY", 0.01)
+        monkeypatch.setattr("fusion360_live_mcp.connection._RETRY_DELAY", 0.01)
         received = []
         port = self._start_silent_server(received)
 
@@ -475,7 +475,7 @@ class TestMutationTimeoutSafety:
         assert received[0]["type"] == "extrude"
 
     def test_read_only_command_retried_on_timeout(self, monkeypatch):
-        monkeypatch.setattr("fusion360_mcp.connection._RETRY_DELAY", 0.01)
+        monkeypatch.setattr("fusion360_live_mcp.connection._RETRY_DELAY", 0.01)
         received = []
         port = self._start_silent_server(received)
 
@@ -489,7 +489,7 @@ class TestMutationTimeoutSafety:
 
     def test_ping_uses_short_timeout(self, monkeypatch):
         """ping() must not block for the full command timeout."""
-        monkeypatch.setattr("fusion360_mcp.connection._PING_TIMEOUT", 0.2)
+        monkeypatch.setattr("fusion360_live_mcp.connection._PING_TIMEOUT", 0.2)
         received = []
         port = self._start_silent_server(received)
 
@@ -538,7 +538,7 @@ class TestEndpointChange:
 
     def test_different_port_recreates_connection(self):
         port, srv, _ = _start_echo_server()
-        import fusion360_mcp.connection as mod
+        import fusion360_live_mcp.connection as mod
 
         saved = mod._connection
         mod._connection = None
@@ -555,7 +555,7 @@ class TestEndpointChange:
 
     def test_same_endpoint_reuses_connection(self):
         port, srv, _ = _start_echo_server()
-        import fusion360_mcp.connection as mod
+        import fusion360_live_mcp.connection as mod
 
         saved = mod._connection
         mod._connection = None

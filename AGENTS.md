@@ -245,4 +245,4 @@ Known `error_kind` values: `PROFILE_NOT_CLOSED`, `SKETCH_NOT_FOUND`, `BODY_NOT_F
 - If commands fail with "Not connected", the Fusion add-in isn't running. The user needs to start it in Fusion (Shift+S > Add-Ins > Run).
 - If commands time out, the Fusion main thread may be blocked (modal dialog, heavy computation).
 - After any error, call `get_scene_info` to check if the operation partially applied before retrying.
-- Logs are written to `~/fusion360mcp.log` by the add-in.
+- Logs are written to `~/fusion360livemcp.log` by the add-in.

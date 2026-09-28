@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from fusion360_mcp.mock import mock_command
+from fusion360_live_mcp.mock import mock_command
 
 ADDON_SERVER = Path(__file__).resolve().parent.parent / "addon" / "server"
 

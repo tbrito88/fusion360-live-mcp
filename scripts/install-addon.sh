@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install/reinstall the Fusion360MCP add-in via symlink (for development)
+# Install/reinstall the Fusion360LiveMCP add-in via symlink (for development)
 # Usage: ./scripts/install-addon.sh
 
 set -e
@@ -18,9 +18,9 @@ else
     exit 1
 fi
 
-TARGET="$ADDINS_DIR/Fusion360MCP"
+TARGET="$ADDINS_DIR/Fusion360LiveMCP"
 
-echo "Installing Fusion360MCP add-in..."
+echo "Installing Fusion360LiveMCP add-in..."
 echo "  Source: $ADDON_SRC"
 echo "  Target: $TARGET"
 
@@ -38,7 +38,7 @@ echo ""
 echo "Next steps:"
 echo "  1. Open Fusion 360"
 echo "  2. Press Shift+S to open Scripts and Add-Ins"
-echo "  3. Find 'Fusion360MCP' in the Add-Ins tab"
+echo "  3. Find 'Fusion360LiveMCP' in the Add-Ins tab"
 echo "  4. Click 'Run' to start the add-in"
 echo ""
 echo "The add-in will listen on localhost:9876"

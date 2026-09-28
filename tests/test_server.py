@@ -3,7 +3,7 @@
 import json
 import re
 
-from fusion360_mcp.server import _send
+from fusion360_live_mcp.server import _send
 
 
 class TestSendRouting:
@@ -21,7 +21,7 @@ class TestSendRouting:
 
     def test_mock_mode_all_tools_succeed(self):
         """Every registered tool should succeed through mock routing."""
-        from fusion360_mcp.tools import TOOLS
+        from fusion360_live_mcp.tools import TOOLS
 
         for tool in TOOLS:
             result = _send("mock", tool["name"], {})
@@ -36,7 +36,7 @@ class TestSendRouting:
         # the mock marker in the response.  If the real add-in is
         # not running this will raise; if it is running the result
         # won't have mode=mock.
-        import fusion360_mcp.connection as conn_mod
+        import fusion360_live_mcp.connection as conn_mod
 
         saved = conn_mod._connection
         conn_mod._connection = None
@@ -79,7 +79,7 @@ class TestToolAnnotations:
     """Verify tool annotations are present and correct."""
 
     def test_all_tools_have_annotations(self):
-        from fusion360_mcp.tools import TOOLS
+        from fusion360_live_mcp.tools import TOOLS
 
         for t in TOOLS:
             ann = t.get("annotations")
@@ -89,7 +89,7 @@ class TestToolAnnotations:
             assert "idempotentHint" in ann
 
     def test_read_only_tools(self):
-        from fusion360_mcp.tools import TOOLS
+        from fusion360_live_mcp.tools import TOOLS
 
         read_only_names = {
             "get_scene_info",
@@ -119,7 +119,7 @@ class TestToolAnnotations:
                 )
 
     def test_destructive_tools(self):
-        from fusion360_mcp.tools import TOOLS
+        from fusion360_live_mcp.tools import TOOLS
 
         destructive = {"delete_all", "delete_parameter", "delete_body"}
         for t in TOOLS:
@@ -130,7 +130,7 @@ class TestToolAnnotations:
                 assert ann["destructiveHint"] is False
 
     def test_annotations_in_mcp_tool_objects(self):
-        from fusion360_mcp.tools import get_tool_list
+        from fusion360_live_mcp.tools import get_tool_list
 
         tools = get_tool_list()
         for tool in tools:
@@ -403,8 +403,8 @@ class TestMockDispatchCompleteness:
     """Verify mock dispatch covers every tool exactly."""
 
     def test_every_tool_has_handler(self):
-        from fusion360_mcp.mock import _DISPATCH
-        from fusion360_mcp.tools import TOOLS
+        from fusion360_live_mcp.mock import _DISPATCH
+        from fusion360_live_mcp.tools import TOOLS
 
         tool_names = {t["name"] for t in TOOLS}
         dispatch_names = set(_DISPATCH.keys())
@@ -412,8 +412,8 @@ class TestMockDispatchCompleteness:
         assert not missing, f"Tools without mock handlers: {missing}"
 
     def test_no_extra_handlers(self):
-        from fusion360_mcp.mock import _DISPATCH
-        from fusion360_mcp.tools import TOOLS
+        from fusion360_live_mcp.mock import _DISPATCH
+        from fusion360_live_mcp.tools import TOOLS
 
         tool_names = {t["name"] for t in TOOLS}
         dispatch_names = set(_DISPATCH.keys())
@@ -421,8 +421,8 @@ class TestMockDispatchCompleteness:
         assert not extra, f"Handlers without tools: {extra}"
 
     def test_dispatch_count_matches_tool_count(self):
-        from fusion360_mcp.mock import _DISPATCH
-        from fusion360_mcp.tools import TOOLS
+        from fusion360_live_mcp.mock import _DISPATCH
+        from fusion360_live_mcp.tools import TOOLS
 
         assert len(_DISPATCH) == len(TOOLS)
 
@@ -431,21 +431,21 @@ class TestAnnotationConsistency:
     """Cross-check annotation sets against actual tool list."""
 
     def test_all_read_only_tools_exist(self):
-        from fusion360_mcp.tools import _READ_ONLY, TOOLS
+        from fusion360_live_mcp.tools import _READ_ONLY, TOOLS
 
         tool_names = {t["name"] for t in TOOLS}
         missing = _READ_ONLY - tool_names
         assert not missing, f"Read-only set references nonexistent tools: {missing}"
 
     def test_all_destructive_tools_exist(self):
-        from fusion360_mcp.tools import _DESTRUCTIVE, TOOLS
+        from fusion360_live_mcp.tools import _DESTRUCTIVE, TOOLS
 
         tool_names = {t["name"] for t in TOOLS}
         missing = _DESTRUCTIVE - tool_names
         assert not missing, f"Destructive set references nonexistent tools: {missing}"
 
     def test_all_idempotent_tools_exist(self):
-        from fusion360_mcp.tools import _IDEMPOTENT, TOOLS
+        from fusion360_live_mcp.tools import _IDEMPOTENT, TOOLS
 
         tool_names = {t["name"] for t in TOOLS}
         missing = _IDEMPOTENT - tool_names
@@ -453,7 +453,7 @@ class TestAnnotationConsistency:
 
     def test_read_only_implies_idempotent(self):
         """Every read-only tool should also be idempotent."""
-        from fusion360_mcp.tools import _IDEMPOTENT, _READ_ONLY
+        from fusion360_live_mcp.tools import _IDEMPOTENT, _READ_ONLY
 
         not_idempotent = _READ_ONLY - _IDEMPOTENT
         assert not not_idempotent, (
@@ -462,7 +462,7 @@ class TestAnnotationConsistency:
 
     def test_destructive_not_read_only(self):
         """No tool should be both destructive and read-only."""
-        from fusion360_mcp.tools import _DESTRUCTIVE, _READ_ONLY
+        from fusion360_live_mcp.tools import _DESTRUCTIVE, _READ_ONLY
 
         overlap = _DESTRUCTIVE & _READ_ONLY
         assert not overlap, f"Tools marked both destructive and read-only: {overlap}"

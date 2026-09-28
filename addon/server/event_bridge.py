@@ -20,7 +20,7 @@ from .hints import classify
 
 log = get_logger("bridge")
 
-CUSTOM_EVENT_ID = "Fusion360MCP_BridgeEvent"
+CUSTOM_EVENT_ID = "Fusion360LiveMCP_BridgeEvent"
 TIMER_INTERVAL_MS = 200  # backup polling interval
 DEFAULT_TIMEOUT = 30.0
 MAX_TIMEOUT = 600.0

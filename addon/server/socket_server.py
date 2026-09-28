@@ -23,7 +23,7 @@ _RESTART_DELAY = 2.0  # seconds before rebinding after socket error
 _MAX_RESTARTS = 10  # consecutive restart cap before giving up
 
 
-class Fusion360MCPServer:
+class Fusion360LiveMCPServer:
     """TCP server that receives JSON commands and dispatches via EventBridge."""
 
     def __init__(self, event_bridge, host="localhost", port=9876):

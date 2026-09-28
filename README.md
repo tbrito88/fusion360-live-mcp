@@ -1,10 +1,10 @@
-# Fusion360 MCP Server
+# Fusion360 Live MCP
 
 *Last updated: 2026-09-27*
 
-> **Beta** — This project is under active development. APIs and tool behavior may change between releases. Use at your own discretion. Feedback and bug reports welcome via [GitHub Issues](https://github.com/tbrito88/fusion360-mcp-server/issues).
+> **Beta** — This project is under active development. APIs and tool behavior may change between releases. Use at your own discretion. Feedback and bug reports welcome via [GitHub Issues](https://github.com/tbrito88/fusion360-live-mcp/issues).
 
-> **Origin** — This is a derivative of [faust-machines/fusion360-mcp-server](https://github.com/faust-machines/fusion360-mcp-server) (MIT-licensed), adapted for Autodesk Fusion 2704.1.53 with additional bug fixes found through live testing inside Fusion. See [CORRECOES.md](CORRECOES.md) for the full list of changes from upstream. The original copyright notice is preserved in [LICENSE](LICENSE) as required by its MIT license.
+> **Origin** — This is a derivative of [faust-machines/fusion360-mcp-server](https://github.com/faust-machines/fusion360-mcp-server) (MIT-licensed), adapted for Autodesk Fusion 2704.1.53 with additional bug fixes found through live testing inside Fusion. See [CORRECOES.md](CORRECOES.md) for the full list of changes from upstream. The original copyright notice is preserved in [LICENSE](LICENSE) as required by its MIT license. Upstream's package, module and add-in names (`fusion360-mcp-server`, `fusion360_mcp`, `Fusion360MCP`) were renamed here so both projects can be installed side by side without clashing.
 
 MCP server that connects AI coding agents to Autodesk Fusion 360 for CAD automation.
 
@@ -13,13 +13,13 @@ Tested with [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Works
 ## How it works
 
 ```
-Any MCP Client ←(stdio MCP)→ This Server ←(TCP :9876)→ Fusion360MCP Add-in ←(CustomEvent)→ Fusion Main Thread
+Any MCP Client ←(stdio MCP)→ This Server ←(TCP :9876)→ Fusion360LiveMCP Add-in ←(CustomEvent)→ Fusion Main Thread
 ```
 
 Two components:
 
 1. **MCP Server** (this repo) — Python process that speaks MCP protocol to Claude and forwards commands over TCP
-2. **Fusion360MCP Add-in** (installed in Fusion's AddIns folder) — runs inside Fusion 360, executes API calls safely on the main thread
+2. **Fusion360LiveMCP Add-in** (installed in Fusion's AddIns folder) — runs inside Fusion 360, executes API calls safely on the main thread
 
 ## Prerequisites
 
@@ -39,30 +39,30 @@ Two components:
 **Manual install:**
 ```bash
 # macOS
-cp -r addon ~/Library/Application\ Support/Autodesk/Autodesk\ Fusion\ 360/API/AddIns/Fusion360MCP
+cp -r addon ~/Library/Application\ Support/Autodesk/Autodesk\ Fusion\ 360/API/AddIns/Fusion360LiveMCP
 
 # Windows (PowerShell)
-Copy-Item -Recurse addon "$env:APPDATA\Autodesk\Autodesk Fusion 360\API\AddIns\Fusion360MCP"
+Copy-Item -Recurse addon "$env:APPDATA\Autodesk\Autodesk Fusion 360\API\AddIns\Fusion360LiveMCP"
 ```
 
-Then start it in Fusion: **Shift+S → Add-Ins → Fusion360MCP → Run**
+Then start it in Fusion: **Shift+S → Add-Ins → Fusion360LiveMCP → Run**
 
 You should see `[MCP] Server listening on localhost:9876` in the TEXT COMMANDS window.
 
 ### 2. Connect your MCP client
 
-This fork is **not** published on PyPI — the `fusion360-mcp-server` package there belongs to the upstream project and does not include the fixes in [CORRECOES.md](CORRECOES.md). Clone this repo and run it from source with `uv`:
+This fork is **not** published on PyPI (upstream's `fusion360-mcp-server` package there does not include the fixes in [CORRECOES.md](CORRECOES.md)). Clone this repo and run it from source with `uv`:
 
 ```bash
-git clone https://github.com/tbrito88/fusion360-mcp-server.git
-cd fusion360-mcp-server
+git clone https://github.com/tbrito88/fusion360-live-mcp.git
+cd fusion360-live-mcp
 uv sync
 ```
 
 #### Claude Code
 
 ```bash
-claude mcp add fusion360 -- uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket
+claude mcp add fusion360-live -- uv run --directory /path/to/fusion360-live-mcp -m fusion360_live_mcp --mode socket
 ```
 
 #### Other MCP clients
@@ -70,7 +70,7 @@ claude mcp add fusion360 -- uv run --directory /path/to/fusion360-mcp-server -m 
 The server runs over **stdio**, so any MCP-compatible client can launch it. The command is:
 
 ```
-uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket
+uv run --directory /path/to/fusion360-live-mcp -m fusion360_live_mcp --mode socket
 ```
 
 <details>
@@ -79,11 +79,11 @@ uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket
 ```json
 {
   "mcpServers": {
-    "fusion360": {
+    "fusion360-live": {
       "command": "uv",
       "args": [
-        "run", "--directory", "/path/to/fusion360-mcp-server",
-        "-m", "fusion360_mcp", "--mode", "socket"
+        "run", "--directory", "/path/to/fusion360-live-mcp",
+        "-m", "fusion360_live_mcp", "--mode", "socket"
       ]
     }
   }
@@ -99,24 +99,24 @@ If the MCP server and Fusion 360 run on different machines (e.g. MCP server on a
 
 ```powershell
 # Windows
-$env:FUSION_MCP_HOST = "0.0.0.0"
+$env:FUSION360_LIVE_MCP_HOST = "0.0.0.0"
 ```
 
 ```bash
 # macOS / Linux
-export FUSION_MCP_HOST=0.0.0.0
+export FUSION360_LIVE_MCP_HOST=0.0.0.0
 ```
 
-Then start Fusion and run the `Fusion360MCP` add-in. The log line `Server listening on 0.0.0.0:9876` confirms the bind.
+Then start Fusion and run the `Fusion360LiveMCP` add-in. The log line `Server listening on 0.0.0.0:9876` confirms the bind.
 
 **On the MCP-server host**, point the client at the Fusion host's LAN IP:
 
 ```bash
 # Either via CLI flag
-uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket --host 192.168.1.42
+uv run --directory /path/to/fusion360-live-mcp -m fusion360_live_mcp --mode socket --host 192.168.1.42
 
 # Or via env var (useful in MCP client configs)
-FUSION_MCP_HOST=192.168.1.42 uv run --directory /path/to/fusion360-mcp-server -m fusion360_mcp --mode socket
+FUSION360_LIVE_MCP_HOST=192.168.1.42 uv run --directory /path/to/fusion360-live-mcp -m fusion360_live_mcp --mode socket
 ```
 
 **Security note:** the TCP socket has no authentication. Only expose it on a trusted LAN — never bind to `0.0.0.0` on a host reachable from the public internet.
@@ -127,8 +127,8 @@ Call the `ping` tool from your client. If it returns `{"ok": true, "status": "po
 
 ### Uninstalling
 
-1. Remove the `fusion360` entry from your MCP client config
-2. Stop the add-in in Fusion (Shift+S → Add-Ins → Fusion360MCP → Stop)
+1. Remove the `fusion360-live` entry from your MCP client config
+2. Stop the add-in in Fusion (Shift+S → Add-Ins → Fusion360LiveMCP → Stop)
 3. Delete the add-in folder from Fusion's AddIns directory
 
 ## Available Tools (92)
@@ -317,7 +317,7 @@ uv run ruff check   # lint
 - All Fusion API units are **centimeters** (Fusion's internal unit).
 - One operation per tool call. Batching multiple operations crashes the add-in.
 - Timeouts: the add-in's main-thread bridge times out after 30s and *cancels* the queued command; the client waits up to 45s so it receives that structured `TIMEOUT` error. **Mutation commands are never auto-retried** — after a timeout, call `get_scene_info` to check whether anything was applied before retrying.
-- Add-in logs to `~/fusion360mcp.log`.
+- Add-in logs to `~/fusion360livemcp.log`.
 - The `undo` tool includes a design-type safety guard — it checks before/after and auto-redoes if the undo would switch from parametric to direct mode.
 - This fork is tested on Fusion 2704.1.53 (Windows x86_64) — see [CORRECOES.md](CORRECOES.md) for the full validation log. Tools marked **(2026+)** need a build from 2026 or later.
 

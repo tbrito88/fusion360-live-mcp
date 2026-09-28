@@ -3,7 +3,7 @@
 The Fusion add-in is installed into Fusion's AddIns folder and cannot
 import from this package, so a few tables are duplicated:
 
-* ``addon/server/hints.py:_RULES``   ↔  ``src/fusion360_mcp/hints.py:_RULES``
+* ``addon/server/hints.py:_RULES``   ↔  ``src/fusion360_live_mcp/hints.py:_RULES``
 * ``CommandHandler._MUTATION_COMMANDS``  ↔  ``mock.py:_MUTATION_MOCKS``
 
 If they drift, agents see different error envelopes / delta payloads
@@ -63,17 +63,17 @@ def test_hints_rules_in_sync():
         REPO_ROOT / "addon" / "server" / "hints.py", "_addon_hints"
     )
     src_hints = _load_module_by_path(
-        REPO_ROOT / "src" / "fusion360_mcp" / "hints.py", "_src_hints"
+        REPO_ROOT / "src" / "fusion360_live_mcp" / "hints.py", "_src_hints"
     )
     assert addon_hints._RULES == src_hints._RULES, (
-        "addon/server/hints.py and src/fusion360_mcp/hints.py have drifted. "
+        "addon/server/hints.py and src/fusion360_live_mcp/hints.py have drifted. "
         "Update both files in lockstep."
     )
 
 
 def test_mutation_sets_in_sync():
     """Addon mutation set and mock mutation set must be identical."""
-    from fusion360_mcp.mock import _MUTATION_MOCKS
+    from fusion360_live_mcp.mock import _MUTATION_MOCKS
 
     addon_set = _extract_class_attr_set(
         REPO_ROOT / "addon" / "server" / "command_handler.py",
@@ -121,7 +121,7 @@ def test_tools_match_addon_dispatch():
     This is the drift guard that catches "added a tool to tools.py but
     forgot the CommandHandler entry" (and the reverse) at CI time.
     """
-    from fusion360_mcp.tools import TOOLS
+    from fusion360_live_mcp.tools import TOOLS
 
     tool_names = {t["name"] for t in TOOLS}
     dispatch = (

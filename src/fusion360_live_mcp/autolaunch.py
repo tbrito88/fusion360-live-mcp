@@ -18,7 +18,7 @@ no Fusion process is running, we:
 If Fusion IS already running but the port is closed (add-in stopped),
 we do nothing: restarting Fusion could lose unsaved work.
 
-Disable with FUSION_MCP_AUTOLAUNCH=0.
+Disable with FUSION360_LIVE_MCP_AUTOLAUNCH=0.
 """
 
 import glob
@@ -30,20 +30,20 @@ import subprocess
 import sys
 import time
 
-log = logging.getLogger("fusion360_mcp.autolaunch")
+log = logging.getLogger("fusion360_live_mcp.autolaunch")
 
-_ADDIN_NAME = "Fusion360MCP"
-_LAUNCH_WAIT = float(os.environ.get("FUSION_MCP_LAUNCH_WAIT", "240"))
+_ADDIN_NAME = "Fusion360LiveMCP"
+_LAUNCH_WAIT = float(os.environ.get("FUSION360_LIVE_MCP_LAUNCH_WAIT", "240"))
 
 
 def enabled(host: str) -> bool:
-    if os.environ.get("FUSION_MCP_AUTOLAUNCH", "1") == "0":
+    if os.environ.get("FUSION360_LIVE_MCP_AUTOLAUNCH", "1") == "0":
         return False
     return sys.platform == "win32" and host in ("localhost", "127.0.0.1")
 
 
 def _addin_script_path() -> str:
-    # <repo>/src/fusion360_mcp/autolaunch.py -> <repo>/addon/Fusion360MCP.py
+    # <repo>/src/fusion360_live_mcp/autolaunch.py -> <repo>/addon/Fusion360LiveMCP.py
     here = os.path.dirname(os.path.abspath(__file__))
     repo = os.path.dirname(os.path.dirname(here))
     return os.path.join(repo, "addon", f"{_ADDIN_NAME}.py")
@@ -91,7 +91,7 @@ def enable_run_on_startup() -> int:
         found = False
         # A second entry for the same add-in (e.g. via an API/AddIns junction)
         # is NOT touched here: Fusion rewrites both from the shared manifest
-        # on launch (confirmed live). Fusion360MCP.run() steps aside instead.
+        # on launch (confirmed live). Fusion360LiveMCP.run() steps aside instead.
         for entry in entries:
             if _norm(entry.get("path", "")) == target:
                 found = True

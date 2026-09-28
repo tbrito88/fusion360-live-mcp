@@ -1,13 +1,13 @@
-"""Fusion360MCP Server Package — v2 (CustomEvent bridge architecture)"""
+"""Fusion360LiveMCP Server Package — v2 (CustomEvent bridge architecture)"""
 
 import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
 
-LOG_PATH = os.path.join(os.path.expanduser("~"), "fusion360mcp.log")
+LOG_PATH = os.path.join(os.path.expanduser("~"), "fusion360livemcp.log")
 
-_logger = logging.getLogger("fusion360mcp")
+_logger = logging.getLogger("fusion360livemcp")
 _logger.setLevel(logging.DEBUG)
 
 # File handler — rotates at 2 MB, keeps 3 backups
@@ -26,7 +26,7 @@ _logger.addHandler(_sh)
 
 
 def get_logger(name: str = None) -> logging.Logger:
-    """Return a child logger.  ``get_logger("bridge")`` → ``fusion360mcp.bridge``."""
+    """Return a child logger.  ``get_logger("bridge")`` → ``fusion360livemcp.bridge``."""
     if name:
         return _logger.getChild(name)
     return _logger

@@ -1,18 +1,18 @@
-# Fusion360 MCP Server
+# Fusion360 Live MCP
 
 ## What this is
 
 An MCP server that bridges Claude Code to Autodesk Fusion 360 for CAD automation. Two components:
 
 1. **This repo** — Python MCP server (stdio transport, 92 tools). Claude talks to this.
-2. **Fusion360MCP add-in** — installed in Fusion's AddIns folder. Listens on `localhost:9876`.
+2. **Fusion360LiveMCP add-in** — installed in Fusion's AddIns folder. Listens on `localhost:9876`.
 
 The MCP server receives tool calls from Claude, forwards them as JSON over TCP to the add-in, and returns results.
 
 ## Architecture
 
 ```
-Claude Code ←(stdio MCP)→ This Server ←(TCP :9876)→ Fusion360MCP Add-in ←(CustomEvent)→ Fusion Main Thread
+Claude Code ←(stdio MCP)→ This Server ←(TCP :9876)→ Fusion360LiveMCP Add-in ←(CustomEvent)→ Fusion Main Thread
 ```
 
 ## Development
@@ -31,18 +31,18 @@ start again). Run tests in a throwaway env instead:
 
 ## Key files
 
-- `src/fusion360_mcp/server.py` — MCP server entry point (click CLI), resources, prompts
-- `src/fusion360_mcp/connection.py` — TCP client to Fusion add-in
-- `src/fusion360_mcp/tools.py` — 92 tool definitions with annotations
-- `src/fusion360_mcp/hints.py` — error-classification table (mirror of `addon/server/hints.py`)
-- `src/fusion360_mcp/mock.py` — mock responses for `--mode mock` testing
+- `src/fusion360_live_mcp/server.py` — MCP server entry point (click CLI), resources, prompts
+- `src/fusion360_live_mcp/connection.py` — TCP client to Fusion add-in
+- `src/fusion360_live_mcp/tools.py` — 92 tool definitions with annotations
+- `src/fusion360_live_mcp/hints.py` — error-classification table (mirror of `addon/server/hints.py`)
+- `src/fusion360_live_mcp/mock.py` — mock responses for `--mode mock` testing
 - `tests/` — 385 tests covering tools, mock handlers, server routing, connection, annotations
 
 ## Adding a new command
 
 1. Add the handler method in the **add-in's** `command_handler.py`
-2. Add a tool definition dict in `src/fusion360_mcp/tools.py`
-3. Add a mock handler in `src/fusion360_mcp/mock.py` + dispatch entry
+2. Add a tool definition dict in `src/fusion360_live_mcp/tools.py`
+3. Add a mock handler in `src/fusion360_live_mcp/mock.py` + dispatch entry
 4. Add tool name to the annotation sets if read-only/destructive/idempotent
 5. Update `tests/test_tools.py` expected set and add mock test in `tests/test_mock.py`
 6. The MCP server forwards tool calls 1:1 — no mapping code needed

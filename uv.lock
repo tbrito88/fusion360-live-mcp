@@ -219,7 +219,7 @@ wheels = [
 ]
 
 [[package]]
-name = "fusion360-mcp-server"
+name = "fusion360-live-mcp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

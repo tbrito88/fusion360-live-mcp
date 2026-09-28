@@ -9,6 +9,25 @@ commit `ba8560f` (2026-09-16), adaptado ao **Autodesk Fusion 2704.1.53**.
 | Testes | **385 de 385 passam** — todos os bugs desta seção foram achados por teste real, nenhum por auditoria estática |
 | Executado dentro do Fusion | sim — várias rodadas de teste ao vivo (CAM, modelagem) |
 
+### Renomeação (2026-09-27)
+
+Para o fork poder ser instalado junto com o original sem colisão, todos os
+identificadores globais foram renomeados. O restante deste documento já usa os
+nomes novos.
+
+| Onde | Original (upstream) | Neste fork |
+|---|---|---|
+| Pacote / comando / nome do servidor MCP | `fusion360-mcp-server` | `fusion360-live-mcp` |
+| Módulo Python | `fusion360_mcp` | `fusion360_live_mcp` |
+| Add-in do Fusion (pasta, `.py`, `.manifest`) | `Fusion360MCP` | `Fusion360LiveMCP` |
+| `id` do manifest | UUID do upstream | UUID novo |
+| CustomEvent do add-in | `Fusion360MCP_BridgeEvent` | `Fusion360LiveMCP_BridgeEvent` |
+| Logger / arquivo de log | `fusion360mcp` / `~/fusion360mcp.log` | `fusion360livemcp` / `~/fusion360livemcp.log` |
+| Variáveis de ambiente | `FUSION_MCP_*` | `FUSION360_LIVE_MCP_*` |
+
+Mantidos de propósito: a porta padrão `9876` e o esquema de URI
+`fusion360://` (este é isolado por servidor no cliente MCP).
+
 ---
 
 ## 1. Correção de método — leia antes do resto
@@ -640,14 +659,14 @@ erro claro se o filtro esvaziar a seleção. Validado ao vivo: chanfro de
 
 ### Auto-start do Fusion (código pronto, NÃO ativado)
 
-`src/fusion360_mcp/autolaunch.py`: se o `connect()` falhar em localhost e
+`src/fusion360_live_mcp/autolaunch.py`: se o `connect()` falhar em localhost e
 não houver processo Fusion360.exe rodando, o servidor liga `runOnStartup` para
 *este* add-in em `%APPDATA%/Autodesk/Autodesk Fusion 360/*/JSLoadedScriptsinfo`
 (é o Fusion que regrava esse arquivo ao fechar, por isso o patch é feito a cada
 lançamento), abre o Fusion pelo atalho do Menu Iniciar (o hash do webdeploy
 muda a cada atualização) e espera a porta 9876 abrir. Não reinicia um Fusion
 já aberto (risco de perder trabalho). Pode ser desligado com
-`FUSION_MCP_AUTOLAUNCH=0`. Os testes forçam o desligamento via
+`FUSION360_LIVE_MCP_AUTOLAUNCH=0`. Os testes forçam o desligamento via
 `tests/conftest.py`, e há testes próprios em `tests/test_autolaunch.py`. O manifest
 agora tem `runOnStartup: true`. Validado: 365 testes passando, ruff limpo
 (incluindo um E501 antigo em um comentário do `chamfer`).
@@ -655,7 +674,7 @@ agora tem `runOnStartup: true`. Validado: 365 testes passando, ruff limpo
 **Armadilha de ambiente:** `uv run pytest` com o servidor MCP rodando dispara
 um `uv sync` (as dependências de dev não estavam instaladas) que falha no
 meio porque o servidor trava `.pyd`/`.dll` do `.venv`, e deixa o ambiente
-**sem metade dos pacotes** (inclusive `fusion360_mcp`). O servidor em memória
+**sem metade dos pacotes** (inclusive `fusion360_live_mcp`). O servidor em memória
 continua funcionando, mas não sobe de novo. Para testar com o servidor ativo,
 use um ambiente separado:
 `UV_PROJECT_ENVIRONMENT=<pasta temporária> uv run --dev pytest`.
@@ -670,14 +689,14 @@ apareceram 4 problemas, todos corrigidos e retestados:
    `_design()` cria um design em branco **só quando não há nenhum documento
    aberto** (um desenho ou outro documento aberto continua dando erro, sem ser
    substituído).
-2. **Add-in carregado duas vezes.** `API/AddIns/Fusion360MCP` é uma junction
+2. **Add-in carregado duas vezes.** `API/AddIns/Fusion360LiveMCP` é uma junction
    para `addon/`, então o Fusion lista o add-in por dois caminhos e inicia os
    dois (confirmado: dois módulos `command_handler` no mesmo processo). Tentei
    desligar a entrada duplicada no `JSLoadedScriptsinfo`, mas **o Fusion regrava
    o arquivo ao iniciar** a partir do manifest compartilhado (mtime do arquivo
    no segundo da inicialização), então essa correção foi removida. A solução
-   ficou em `Fusion360MCP.run()`: a primeira cópia se registra em
-   `sys._fusion360mcp_owner`, e a segunda sai sem abrir diálogo (um diálogo
+   ficou em `Fusion360LiveMCP.run()`: a primeira cópia se registra em
+   `sys._fusion360livemcp_owner`, e a segunda sai sem abrir diálogo (um diálogo
    modal travaria o Fusion). Retestado: só um módulo carregado.
 3. **Auto-start só uma vez por sessão.** A marca "já tentei" nunca era
    zerada, então um Fusion fechado de novo não era reaberto. Agora ela é zerada

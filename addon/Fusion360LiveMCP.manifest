@@ -1,10 +1,10 @@
 {
   "autodeskProduct": "Fusion360",
   "type": "addin",
-  "id": "6b98393d-7998-4d19-a8e5-c8b5e3d7f4a2",
+  "id": "a772ac54-4d9c-4cb0-b0c3-8f90f3489286",
   "author": "tbrito88 (fork of Faust Machines' Fusion360MCP)",
   "description": {
-    "": "Fusion360 MCP Server"
+    "": "Fusion360 Live MCP"
   },
   "version": "0.1.0",
   "runOnStartup": true,

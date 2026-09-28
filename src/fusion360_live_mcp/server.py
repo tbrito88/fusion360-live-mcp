@@ -1,5 +1,5 @@
 """
-Fusion360 MCP Server — stdio transport.
+Fusion360 Live MCP — stdio transport.
 
 Bridges Claude Code ↔ Fusion 360 add-in via TCP socket on localhost.
 Supports ``--mode mock`` for testing without Fusion running.
@@ -28,7 +28,7 @@ from .tools import get_tool_by_name, get_tool_list
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
-log = logging.getLogger("fusion360_mcp.server")
+log = logging.getLogger("fusion360_live_mcp.server")
 
 
 def _send(
@@ -171,22 +171,22 @@ def _format_result(
 @click.option(
     "--host",
     type=str,
-    default=lambda: os.environ.get("FUSION_MCP_HOST", "localhost"),
+    default=lambda: os.environ.get("FUSION360_LIVE_MCP_HOST", "localhost"),
     help=(
-        "Host where the Fusion 360 add-in listens (env: FUSION_MCP_HOST). "
+        "Host where the Fusion 360 add-in listens (env: FUSION360_LIVE_MCP_HOST). "
         "Use the Windows LAN IP when the MCP server runs on a different machine."
     ),
 )
 @click.option(
     "--port",
     type=int,
-    default=lambda: int(os.environ.get("FUSION_MCP_PORT", "9876")),
-    help="TCP port the Fusion 360 add-in listens on (env: FUSION_MCP_PORT)",
+    default=lambda: int(os.environ.get("FUSION360_LIVE_MCP_PORT", "9876")),
+    help="TCP port the Fusion 360 add-in listens on (env: FUSION360_LIVE_MCP_PORT)",
 )
 def main(mode: str, host: str, port: int) -> int:
-    """Fusion360 MCP Server — connects Claude to Fusion 360."""
+    """Fusion360 Live MCP — connects Claude to Fusion 360."""
 
-    app = Server("fusion360-mcp-server")
+    app = Server("fusion360-live-mcp")
 
     # ── tools ────────────────────────────────────────────────────────
 
@@ -216,7 +216,7 @@ def main(mode: str, host: str, port: int) -> int:
                     type="text",
                     text=f"Error ({name}): {exc}\n\n"
                     "Make sure Fusion 360 is running and the "
-                    "Fusion360MCP add-in is started.",
+                    "Fusion360LiveMCP add-in is started.",
                 )
             ]
             return types.CallToolResult(

@@ -1,7 +1,7 @@
 #!/bin/bash
-# Wrapper for running fusion360-mcp-server from inside a Docker devcontainer.
+# Wrapper for running fusion360-live-mcp from inside a Docker devcontainer.
 #
-# The fusion360-mcp-server Python process connects to localhost:9876 to reach
+# The fusion360-live-mcp Python process connects to localhost:9876 to reach
 # the Fusion add-in. From inside a Docker container, "localhost" is the
 # container itself — not the host running Fusion. This wrapper starts a Python
 # TCP relay that forwards localhost:9876 → host.docker.internal:9876, then
@@ -58,5 +58,5 @@ if [ -z "$UVX" ]; then
     exit 1
 fi
 
-# Install from this fork, not PyPI: the PyPI package of the same name is upstream's
-exec "$UVX" --from git+https://github.com/tbrito88/fusion360-mcp-server fusion360-mcp-server --mode socket
+# Not published on PyPI — install straight from this repo
+exec "$UVX" --from git+https://github.com/tbrito88/fusion360-live-mcp fusion360-live-mcp --mode socket

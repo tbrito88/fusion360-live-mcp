@@ -1,6 +1,6 @@
 import json
 
-from fusion360_mcp import autolaunch
+from fusion360_live_mcp import autolaunch
 
 
 def _write_state(tmp_path, entries):
@@ -16,7 +16,7 @@ def test_disabled_by_env_in_tests():
 
 
 def test_remote_host_never_autolaunches(monkeypatch):
-    monkeypatch.setenv("FUSION_MCP_AUTOLAUNCH", "1")
+    monkeypatch.setenv("FUSION360_LIVE_MCP_AUTOLAUNCH", "1")
     assert autolaunch.enabled("192.168.0.10") is False
 
 
@@ -26,8 +26,8 @@ def test_enable_run_on_startup_flips_only_this_repo(tmp_path, monkeypatch):
     path = _write_state(
         tmp_path,
         [
-            {"name": "Fusion360MCP", "path": ours, "runOnStartup": False},
-            {"name": "Fusion360MCP", "path": "C:/other/Fusion360MCP.py",
+            {"name": "Fusion360LiveMCP", "path": ours, "runOnStartup": False},
+            {"name": "Fusion360LiveMCP", "path": "C:/other/Fusion360LiveMCP.py",
              "runOnStartup": False},
         ],
     )
@@ -44,7 +44,7 @@ def test_enable_run_on_startup_adds_missing_entry(tmp_path, monkeypatch):
     path = _write_state(tmp_path, [])
     assert autolaunch.enable_run_on_startup() == 1
     entries = json.loads(path.read_text(encoding="utf-8"))["loadedScripts"]
-    assert entries[0]["name"] == "Fusion360MCP"
+    assert entries[0]["name"] == "Fusion360LiveMCP"
     assert entries[0]["runOnStartup"] is True
 
 
@@ -60,7 +60,7 @@ def test_does_not_restart_running_fusion(monkeypatch):
 def test_peer_closed_detects_dead_socket():
     import socket
 
-    from fusion360_mcp.connection import Fusion360Connection
+    from fusion360_live_mcp.connection import Fusion360Connection
 
     a, b = socket.socketpair()
     conn = Fusion360Connection()

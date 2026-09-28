@@ -1,6 +1,6 @@
 """Tests for the tool registry."""
 
-from fusion360_mcp.tools import TOOLS, get_tool_by_name, get_tool_list
+from fusion360_live_mcp.tools import TOOLS, get_tool_by_name, get_tool_list
 
 
 def test_all_tools_have_required_keys():

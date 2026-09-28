@@ -2,8 +2,8 @@
 
 import json
 
-from fusion360_mcp.mock import mock_command
-from fusion360_mcp.server import _format_result
+from fusion360_live_mcp.mock import mock_command
+from fusion360_live_mcp.server import _format_result
 
 
 def dump(label, name, params=None):

@@ -1,9 +1,9 @@
 """
-TCP connection to the Fusion360MCP add-in running inside Fusion 360.
+TCP connection to the Fusion360LiveMCP add-in running inside Fusion 360.
 
 The add-in listens on localhost:9876 by default and speaks
-newline-delimited JSON. Override via env vars FUSION_MCP_HOST /
-FUSION_MCP_PORT for cross-machine setups (e.g. MCP server on a
+newline-delimited JSON. Override via env vars FUSION360_LIVE_MCP_HOST /
+FUSION360_LIVE_MCP_PORT for cross-machine setups (e.g. MCP server on a
 Mac Mini connecting to Fusion running on a Windows PC).
 """
 
@@ -19,17 +19,17 @@ from . import autolaunch
 from .hints import classify as _classify
 from .mock import _MUTATION_MOCKS as _MUTATION_COMMANDS
 
-log = logging.getLogger("fusion360_mcp.connection")
+log = logging.getLogger("fusion360_live_mcp.connection")
 
-_DEFAULT_HOST = os.environ.get("FUSION_MCP_HOST", "localhost")
+_DEFAULT_HOST = os.environ.get("FUSION360_LIVE_MCP_HOST", "localhost")
 
 
 def _default_port() -> int:
-    raw = os.environ.get("FUSION_MCP_PORT", "9876")
+    raw = os.environ.get("FUSION360_LIVE_MCP_PORT", "9876")
     try:
         return int(raw)
     except ValueError:
-        log.warning("Invalid FUSION_MCP_PORT %r — falling back to 9876", raw)
+        log.warning("Invalid FUSION360_LIVE_MCP_PORT %r — falling back to 9876", raw)
         return 9876
 
 

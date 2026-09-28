@@ -5,9 +5,9 @@ import base64
 import mcp.types as types
 import pytest
 
-from fusion360_mcp.hints import classify
-from fusion360_mcp.mock import _MUTATION_MOCKS, mock_command
-from fusion360_mcp.server import _format_result
+from fusion360_live_mcp.hints import classify
+from fusion360_live_mcp.mock import _MUTATION_MOCKS, mock_command
+from fusion360_live_mcp.server import _format_result
 
 
 class TestHintClassification:

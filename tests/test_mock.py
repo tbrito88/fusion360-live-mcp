@@ -2,8 +2,8 @@
 
 import pytest
 
-from fusion360_mcp.mock import _DISPATCH, mock_command
-from fusion360_mcp.tools import TOOLS
+from fusion360_live_mcp.mock import _DISPATCH, mock_command
+from fusion360_live_mcp.tools import TOOLS
 
 
 class TestMockDispatchCoverage:

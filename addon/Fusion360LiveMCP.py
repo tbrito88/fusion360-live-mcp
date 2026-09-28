@@ -1,12 +1,12 @@
 """
-Fusion360MCP Add-in (v2)
+Fusion360LiveMCP Add-in (v2)
 
 Registers a CustomEvent so all Fusion API calls run on the main thread.
 A TCP socket server (daemon thread) accepts JSON commands and dispatches
 them through an EventBridge.
 
-Host/port override via env vars FUSION_MCP_HOST and FUSION_MCP_PORT.
-Set FUSION_MCP_HOST=0.0.0.0 to expose the add-in on all interfaces
+Host/port override via env vars FUSION360_LIVE_MCP_HOST and FUSION360_LIVE_MCP_PORT.
+Set FUSION360_LIVE_MCP_HOST=0.0.0.0 to expose the add-in on all interfaces
 for cross-machine setups (MCP server on a different host). Only do
 this on a trusted LAN — the socket has no authentication.
 """
@@ -31,16 +31,16 @@ def run(context):
     global _app, _ui, _bridge, _server, _handler, _log
 
     # FIX (fork): Fusion can list this add-in under two paths (e.g.
-    # API/AddIns/Fusion360MCP is a junction to the repo's addon/ folder) and
+    # API/AddIns/Fusion360LiveMCP is a junction to the repo's addon/ folder) and
     # start BOTH at launch — confirmed live, two command_handler modules in
     # one process. Fusion rewrites its add-in state file from the shared
     # manifest, so this can't be fixed from outside; the second copy must
     # step aside itself. sys is shared by every add-in in the process.
-    owner = getattr(sys, "_fusion360mcp_owner", None)
+    owner = getattr(sys, "_fusion360livemcp_owner", None)
     if owner is not None and owner != __name__:
-        print(f"Fusion360MCP: already running as {owner}; skipping {__name__}")
+        print(f"Fusion360LiveMCP: already running as {owner}; skipping {__name__}")
         return
-    sys._fusion360mcp_owner = __name__
+    sys._fusion360livemcp_owner = __name__
 
     try:
         _app = adsk.core.Application.get()
@@ -50,19 +50,19 @@ def run(context):
         from .server import LOG_PATH, get_logger
         from .server.command_handler import CommandHandler
         from .server.event_bridge import EventBridge
-        from .server.socket_server import Fusion360MCPServer
+        from .server.socket_server import Fusion360LiveMCPServer
 
         _log = get_logger("main")
 
-        host = os.environ.get("FUSION_MCP_HOST", "localhost")
-        port = int(os.environ.get("FUSION_MCP_PORT", "9876"))
+        host = os.environ.get("FUSION360_LIVE_MCP_HOST", "localhost")
+        port = int(os.environ.get("FUSION360_LIVE_MCP_PORT", "9876"))
 
         _handler = CommandHandler()
         _bridge = EventBridge(_app, _handler)
-        _server = Fusion360MCPServer(_bridge, host=host, port=port)
+        _server = Fusion360LiveMCPServer(_bridge, host=host, port=port)
         _server.start()
 
-        _log.info("Fusion360MCP loaded - server on %s:%s  (log: %s)",
+        _log.info("Fusion360LiveMCP loaded - server on %s:%s  (log: %s)",
                   host, port, LOG_PATH)
         if host not in ("localhost", "127.0.0.1"):
             _log.warning("Listening on non-loopback host %s — "
@@ -71,8 +71,8 @@ def run(context):
     except Exception:
         msg = traceback.format_exc()
         if _ui:
-            _ui.messageBox(f"Fusion360MCP failed to start:\n{msg}")
-        print(f"Fusion360MCP startup error:\n{msg}")
+            _ui.messageBox(f"Fusion360LiveMCP failed to start:\n{msg}")
+        print(f"Fusion360LiveMCP startup error:\n{msg}")
 
 
 def stop(context):
@@ -87,10 +87,10 @@ def stop(context):
         traceback.print_exc()
 
     if _log:
-        _log.info("Fusion360MCP stopped")
+        _log.info("Fusion360LiveMCP stopped")
 
     _server = None
     _bridge = None
     _handler = None
-    if getattr(sys, "_fusion360mcp_owner", None) == __name__:
-        sys._fusion360mcp_owner = None
+    if getattr(sys, "_fusion360livemcp_owner", None) == __name__:
+        sys._fusion360livemcp_owner = None

@@ -1,10 +1,10 @@
 # Devcontainer setup
 
-Run `fusion360-mcp-server` from inside a Docker devcontainer (e.g. VS Code's Dev Containers extension) while Fusion 360 runs on the Windows host.
+Run `fusion360-live-mcp` from inside a Docker devcontainer (e.g. VS Code's Dev Containers extension) while Fusion 360 runs on the Windows host.
 
 ## The problem
 
-`fusion360-mcp-server` connects to `localhost:9876` to reach the Fusion add-in. From inside a Docker container, `localhost` is the container's own loopback — not the Windows host where Fusion is running. Three things stand in the way:
+`fusion360-live-mcp` connects to `localhost:9876` to reach the Fusion add-in. From inside a Docker container, `localhost` is the container's own loopback — not the Windows host where Fusion is running. Three things stand in the way:
 
 1. The container's `localhost` does not reach the host
 2. The Fusion add-in binds to `127.0.0.1` on Windows, so even traffic that reaches the host gets dropped if it comes in on a different interface
@@ -17,7 +17,7 @@ Devcontainer
   MCP client
     └── spawns fusion-mcp-wrapper.sh (stdio MCP subprocess)
          ├── Python TCP relay  localhost:9876 ──────────────────────┐
-         └── uvx fusion360-mcp-server  (connects to localhost:9876) ┘
+         └── uvx fusion360-live-mcp (git) → localhost:9876          ┘
                                                                      │ relayed to
                                                               host.docker.internal:9876
                                                                      │
@@ -30,13 +30,13 @@ Windows host (netsh portproxy)                                       │
 Two scripts handle it:
 
 1. **`fusion-mcp-bridge.ps1`** (Windows-side, run once as Administrator) — adds `netsh portproxy` rules forwarding the Docker bridge adapter IPs to `127.0.0.1:9876`, plus a Windows Firewall inbound rule scoped to the Docker subnet only. Both rules persist across reboots.
-2. **`fusion-mcp-wrapper.sh`** (devcontainer-side, configured as your MCP client's stdio command) — starts a Python TCP relay forwarding the container's `localhost:9876` to `host.docker.internal:9876`, then execs this fork's server via `uvx --from git+https://github.com/tbrito88/fusion360-mcp-server fusion360-mcp-server --mode socket` (not the PyPI package of the same name, which is upstream's). The MCP server connects to `localhost:9876` unchanged; the relay bridges it to the Windows host.
+2. **`fusion-mcp-wrapper.sh`** (devcontainer-side, configured as your MCP client's stdio command) — starts a Python TCP relay forwarding the container's `localhost:9876` to `host.docker.internal:9876`, then execs this fork's server via `uvx --from git+https://github.com/tbrito88/fusion360-live-mcp fusion360-live-mcp --mode socket` (this fork is not on PyPI). The MCP server connects to `localhost:9876` unchanged; the relay bridges it to the Windows host.
 
 ## Setup
 
 ### 1. Install the Fusion add-in (Windows)
 
-Follow the main README — copy the `addon` directory into Fusion's add-ins folder and start it via Shift+S → Add-Ins → Fusion360MCP → Run. Confirm in TEXT COMMANDS:
+Follow the main README — copy the `addon` directory into Fusion's add-ins folder and start it via Shift+S → Add-Ins → Fusion360LiveMCP → Run. Confirm in TEXT COMMANDS:
 
 ```
 [MCP] Server listening on localhost:9876
@@ -132,7 +132,7 @@ Ask your MCP client to call the `ping` tool. If it returns `{"pong": true}`, you
 | MCP client shows server disconnected | Wrapper failed to start | Run the wrapper manually (`bash devcontainer/fusion-mcp-wrapper.sh`) and check stderr |
 | `uvx: not found` | uv not installed in container | Install uv (see Prerequisites) |
 | Python relay error: address in use | Stale relay from a previous run | `lsof -ti:9876 \| xargs kill` |
-| TCP test: connection refused | Fusion add-in not running on host | Shift+S → Add-Ins → Fusion360MCP → Run |
+| TCP test: connection refused | Fusion add-in not running on host | Shift+S → Add-Ins → Fusion360LiveMCP → Run |
 | TCP test: connection timed out | Bridge script not run, or firewall blocking | Re-run `fusion-mcp-bridge.ps1` as Administrator |
 | Bridge script: no Docker adapters found | Docker Desktop not running, or unusual network setup | Check `Get-NetIPAddress` shows a 172.16–31.x adapter |
 
