@@ -390,7 +390,7 @@ Call the `ping` tool from your client. If it returns `{"ok": true, "status": "po
 
 ```bash
 uv sync --dev       # install deps
-uv run pytest -v    # run tests (496 tests)
+uv run pytest -v    # run tests (497 tests)
 uv run ruff check   # lint
 ```
 

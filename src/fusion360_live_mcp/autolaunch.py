@@ -50,7 +50,10 @@ def _addin_script_path() -> str:
 
 
 def _norm(p: str) -> str:
-    return os.path.normcase(os.path.normpath(p.replace("/", os.sep)))
+    # realpath resolves junctions: the add-in reached through
+    # API/AddIns/<junction> is the same file as <repo>/addon, and adding a
+    # second entry for it made Fusion list the add-in twice.
+    return os.path.normcase(os.path.realpath(p.replace("/", os.sep)))
 
 
 
@@ -70,9 +73,10 @@ def fusion_running() -> bool:
 def enable_run_on_startup() -> int:
     """Set runOnStartup=true for this add-in in every Fusion user profile.
 
-    Returns the number of entries changed. Only the entry whose path is
-    this repo's add-in is touched, so a second installed copy (e.g. in
-    API/AddIns) does not also start and fight over the port.
+    Returns the number of entries changed. Only entries that resolve to this
+    repo's add-in file are touched (a junction in API/AddIns counts as this
+    one), so a separate copy elsewhere does not also start and fight over
+    the port.
     """
     target = _norm(_addin_script_path())
     pattern = os.path.join(
@@ -89,9 +93,8 @@ def enable_run_on_startup() -> int:
             continue
         entries = data.get("loadedScripts", [])
         found = False
-        # A second entry for the same add-in (e.g. via an API/AddIns junction)
-        # is NOT touched here: Fusion rewrites both from the shared manifest
-        # on launch (confirmed live). Fusion360LiveMCP.run() steps aside instead.
+        # If older versions already left two entries for the same file, both
+        # still load; Fusion360LiveMCP.run() makes the second copy step aside.
         for entry in entries:
             if _norm(entry.get("path", "")) == target:
                 found = True

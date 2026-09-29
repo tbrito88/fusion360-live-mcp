@@ -1,4 +1,8 @@
 import json
+import os
+import sys
+
+import pytest
 
 from fusion360_live_mcp import autolaunch
 
@@ -45,6 +49,28 @@ def test_enable_run_on_startup_adds_missing_entry(tmp_path, monkeypatch):
     assert autolaunch.enable_run_on_startup() == 1
     entries = json.loads(path.read_text(encoding="utf-8"))["loadedScripts"]
     assert entries[0]["name"] == "Fusion360LiveMCP"
+    assert entries[0]["runOnStartup"] is True
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="junctions are Windows-only")
+def test_entry_through_a_junction_is_recognised(tmp_path, monkeypatch):
+    """install-addon.sh links API/AddIns/<name> to addon/; Fusion lists the
+    add-in by that path. Auto-launch must reuse that entry, not add a
+    second one for the same file (Fusion then showed the add-in twice)."""
+    import _winapi
+
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    real = autolaunch._addin_script_path()
+    junction = tmp_path / "AddIns" / "Fusion360LiveMCP"
+    junction.parent.mkdir()
+    _winapi.CreateJunction(os.path.dirname(real), str(junction))
+    via = str(junction / os.path.basename(real)).replace("\\", "/")
+    path = _write_state(
+        tmp_path, [{"name": "Fusion360LiveMCP", "path": via, "runOnStartup": False}]
+    )
+    assert autolaunch.enable_run_on_startup() == 1
+    entries = json.loads(path.read_text(encoding="utf-8"))["loadedScripts"]
+    assert len(entries) == 1
     assert entries[0]["runOnStartup"] is True
 
 
