@@ -1,6 +1,6 @@
 # Fusion360 Live MCP
 
-*Last updated: 2026-09-27*
+*Last updated: 2026-09-29*
 
 > **Beta** — This project is under active development. APIs and tool behavior may change between releases. Use at your own discretion. Feedback and bug reports welcome via [GitHub Issues](https://github.com/tbrito88/fusion360-live-mcp/issues).
 
@@ -9,6 +9,9 @@
 MCP server that connects AI coding agents to Autodesk Fusion 360 for CAD automation.
 
 Live-tested with [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Works with any client that speaks the [Model Context Protocol](https://modelcontextprotocol.io) over stdio — Hermes Agent, OpenClaw, Codex, Gemini CLI, Cursor and others; see [Other agents and LLMs](#other-agents-and-llms).
+
+> [!WARNING]
+> **Check every G-code before it reaches a machine.** The agent can generate toolpaths and post-process them to G-code, but nothing here verifies them for collisions, feeds or fixturing. Simulate every toolpath in Fusion's Manufacture workspace and have a qualified person review the program before running it on any CNC. The CAM tools are marked so your MCP client asks for approval before running them; approving one is not a substitute for that review. This software comes with no warranty (see [LICENSE](LICENSE)).
 
 ## How it works
 
@@ -26,6 +29,14 @@ Two components:
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Autodesk Fusion 360
 - An MCP-compatible client (Claude Code, OpenCode, Codex, Cursor, etc.)
+
+## Security
+
+- The add-in listens on `localhost:9876` with **no authentication**. Any program running under your user account can connect and send commands — including `execute_code`, which runs arbitrary Python inside Fusion with your permissions. Only run the add-in on machines where you trust the local software.
+- Connections that don't speak the add-in's JSON protocol are dropped before any command is read. This blocks a web page from making your browser send commands to `localhost`.
+- `execute_code`, `cam_generate_toolpath` and `cam_post_process` are annotated as destructive, so clients that honour MCP tool annotations ask before running them instead of auto-approving. Read the code or the CAM setup an agent wants to run before approving it.
+- Binding to `0.0.0.0` (the LAN setup) extends the same trust to every machine on that network.
+- Please report vulnerabilities privately through the repository's **Security → Report a vulnerability** page, not in a public issue.
 
 ## Installation
 
@@ -403,14 +414,6 @@ uv run ruff check   # lint
 - **Auto-launch (Windows):** when the add-in is unreachable on `localhost` and Fusion is not running, the server starts Fusion and marks this add-in as *run on startup* in Fusion's add-in list (`JSLoadedScriptsinfo`). If Fusion is already running it does nothing, so no unsaved work is lost. Set `FUSION360_LIVE_MCP_AUTOLAUNCH=0` to disable.
 - The `undo` tool includes a design-type safety guard — it checks before/after and auto-redoes if the undo would switch from parametric to direct mode.
 - This fork is tested on Fusion 2704.1.53 (Windows x86_64) — see [CORRECOES.md](CORRECOES.md) for the full validation log. Tools marked **(2026+)** need a build from 2026 or later.
-
-## Security
-
-- The add-in listens on `localhost:9876` with **no authentication**. Any program running under your user account can connect and send commands — including `execute_code`, which runs arbitrary Python inside Fusion with your permissions. Only run the add-in on machines where you trust the local software.
-- Connections that don't speak the add-in's JSON protocol are dropped before any command is read. This blocks a web page from making your browser send commands to `localhost`.
-- `execute_code` is annotated as destructive, so MCP clients won't auto-approve it. Read the code an agent wants to run before approving it.
-- Binding to `0.0.0.0` (the LAN setup) extends the same trust to every machine on that network.
-- Please report vulnerabilities privately through the repository's **Security → Report a vulnerability** page, not in a public issue.
 
 ## Acknowledgements
 

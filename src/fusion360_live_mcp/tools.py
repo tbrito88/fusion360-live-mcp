@@ -2530,7 +2530,9 @@ TOOLS: list[dict] = [
         "name": "cam_generate_toolpath",
         "title": "Generate Toolpath",
         "description": (
-            "Generate toolpaths for a specific operation or all operations in a setup"
+            "Generate toolpaths for a specific operation or all operations in a"
+            " setup. Toolpaths are not verified for collisions: the user must"
+            " simulate them in Fusion before any G-code is run on a machine."
         ),
         "inputSchema": {
             "type": "object",
@@ -2557,7 +2559,11 @@ TOOLS: list[dict] = [
     {
         "name": "cam_post_process",
         "title": "Post Process",
-        "description": ("Post-process toolpaths to generate NC code (G-code)"),
+        "description": (
+            "Post-process toolpaths to generate NC code (G-code). The output is"
+            " not verified: tell the user to simulate it in Fusion and have it"
+            " reviewed before running it on a machine."
+        ),
         "inputSchema": {
             "type": "object",
             "required": ["setup_name"],
@@ -2873,8 +2879,16 @@ _READ_ONLY = {
     "get_design_type",
     "render_view",
 }
-# execute_code runs arbitrary Python, so clients must never auto-approve it
-_DESTRUCTIVE = {"delete_all", "delete_parameter", "delete_body", "execute_code"}
+# Never auto-approved: execute_code runs arbitrary Python, and the CAM tools
+# produce toolpaths and G-code that a person must check before machining.
+_DESTRUCTIVE = {
+    "delete_all",
+    "delete_parameter",
+    "delete_body",
+    "execute_code",
+    "cam_generate_toolpath",
+    "cam_post_process",
+}
 _IDEMPOTENT = {
     "ping",
     "get_scene_info",
